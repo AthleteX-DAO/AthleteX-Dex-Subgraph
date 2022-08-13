@@ -6,15 +6,15 @@
   "author": "Isaac Frank",
   "license": "UNLICENSED",
   "scripts": {
-    "codegen": "graph codegen subgraph.yaml",
-    "build": "graph build subgraph.yaml",
-    "deploy": "graph deploy --product hosted-service --node https://api.thegraph.com/deploy/ --ipfs https://api.thegraph.com/ipfs/ nyamwaya/athletex-dex-subgraph-mainnet subgraph.yaml --access-token",
+    "codegen:matic": "node render-template.js matic && graph codegen",
+    "build:matic": "yarn codegen:kovan && graph build",
+    "deploy:matic": "graph deploy --product hosted-service --node https://api.thegraph.com/deploy/ --ipfs https://api.thegraph.com/ipfs/ nyamwaya/athletex-dex-subgraph-mainnet subgraph.yaml --access-token",
     "create-local": "graph create --node http://localhost:8020/ SportsToken/AthleteX-Dex-Subgraph",
     "remove-local": "graph remove --node http://localhost:8020/ SportsToken/AthleteX-Dex-Subgraph",
     "deploy-local": "graph deploy --node http://localhost:8020/ --ipfs http://localhost:5001 SportsToken/AthleteX-Dex-Subgraph",
-    "format:check": "prettier --check '*/**/*.{js,ts}'",
-    "format:write": "prettier --write '*/**/*.{js,ts}'",
-    "lint": "eslint '*/**/*.{js,ts}'",
+    "format:check": "prettier --check \"*/**/*.{js,ts}\"",
+    "format:write": "prettier --write \"*/**/*.{js,ts}\"",
+    "lint": "eslint \"*/**/*.{js,ts}\"",
     "prepare": "husky install"
   },
   "devDependencies": {
@@ -27,6 +27,7 @@
     "eslint": "^7.32.0",
     "eslint-config-prettier": "^8.3.0",
     "husky": "^7.0.0",
+    "mustache": "^4.2.0",
     "prettier": "^2.4.0",
     "typescript": "^4.3.5"
   }
