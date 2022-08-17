@@ -6,9 +6,9 @@
   "author": "Isaac Frank",
   "license": "UNLICENSED",
   "scripts": {
-    "codegen:matic": "node render-template.js matic && graph codegen",
-    "build:matic": "yarn codegen:matic && graph build",
-    "deploy:matic": "graph deploy --product hosted-service --node https://api.thegraph.com/deploy/ --ipfs https://api.thegraph.com/ipfs/ nyamwaya/athletex-dex-subgraph-mainnet subgraph.yaml --access-token",
+    "codegen": "node render-template.js matic && graph codegen",
+    "build": "yarn codegen && graph build",
+    "deploy": "graph deploy --product hosted-service --node https://api.thegraph.com/deploy/ --ipfs https://api.thegraph.com/ipfs/ nyamwaya/athletex-dex-subgraph-mainnet subgraph.yaml --access-token",
     "codegen:sx": "node render-template.js sx && graph codegen",
     "build:sx": "yarn codegen:sx && graph build",
     "deploy:sx": "graph deploy --product hosted-service --node https://graph.sx.technology/ --ipfs  https://ipfs.sx.technology/ devofficer/athletex-dex-sx subgraph.yaml --access-token",
