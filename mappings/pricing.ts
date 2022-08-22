@@ -4,6 +4,7 @@ import { Pair, Token, Bundle } from "../generated/schema";
 import { ZERO_BD, factoryContract, ADDRESS_ZERO, ONE_BD } from "./utils";
 
 let WMATIC_ADDRESS = "0x0d500b1d8e8ef31e21c99d1db9a6444d3adf1270"; // WMATIC
+let AX_POLYGON_ADDRESS = "0x5617604ba0a30e0ff1d2163ab94e50d8b6d0b0df"; //AX
 let BUSD_WMATIC_PAIR = ADDRESS_ZERO;
 let USDT_WMATIC_PAIR = ADDRESS_ZERO;
 
@@ -31,7 +32,7 @@ export function getMaticPriceInUSD(): BigDecimal {
 }
 
 // token where amounts should contribute to tracked volume and liquidity
-let WHITELIST: string[] = [WMATIC_ADDRESS, "0x5617604ba0a30e0ff1d2163ab94e50d8b6d0b0df"];
+let WHITELIST: string[] = [WMATIC_ADDRESS, AX_POLYGON_ADDRESS];
 
 // minimum liquidity for price to get tracked
 let MINIMUM_LIQUIDITY_THRESHOLD_MATIC = BigDecimal.fromString("0.0001");
