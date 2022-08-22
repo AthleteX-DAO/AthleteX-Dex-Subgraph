@@ -7,6 +7,10 @@
     "sx": {
       "address": "0x668880Eb73AAd6474b8aE1C08D3310e765803717",
       "startBlock": 2772002
+    },
+    "toronto": {
+      "address": "0x0000000000000000000000000000000000000000",
+      "startBlock": 0
     }
   }
 }
