@@ -1,0 +1,7 @@
+{
+	"network": "sportx",
+	"ax_factory_address": "0x668880Eb73AAd6474b8aE1C08D3310e765803717",
+	"ax_factory_start_block": 2772002,
+	"ax_token_address": "0xd9Fd6e207a2196e1C3FEd919fCFE91482f705909",
+	"wrapped_gas_token_address": "0xaa99bE3356a11eE92c3f099BD7a038399633566f"
+}

@@ -1,22 +1,29 @@
 /* eslint-disable prefer-const */
-import { log, BigInt, BigDecimal, Address, ethereum } from "@graphprotocol/graph-ts";
+import {
+  log,
+  BigInt,
+  BigDecimal,
+  Address,
+  ethereum,
+} from "@graphprotocol/graph-ts";
 
 import { ERC20 } from "../../generated/Factory/ERC20";
 import { ERC20NameBytes } from "../../generated/Factory/ERC20NameBytes";
 import { ERC20SymbolBytes } from "../../generated/Factory/ERC20SymbolBytes";
 import { Factory as FactoryContract } from "../../generated/templates/Pair/Factory";
-import { User, Bundle, Token, LiquidityPosition, LiquidityPositionSnapshot, Pair } from "../../generated/schema";
+import {
+  User,
+  Bundle,
+  Token,
+  LiquidityPosition,
+  LiquidityPositionSnapshot,
+  Pair,
+} from "../../generated/schema";
+import { FACTORY_ADDRESS, ONE_BI, ZERO_BD, ZERO_BI } from "./constant";
 
-export let ADDRESS_ZERO = "0x0000000000000000000000000000000000000000";
-export let FACTORY_ADDRESS = "0x8720dccfcd5687afae5f0bfb56ff664e6d8b385b";
-
-export let ZERO_BI = BigInt.fromI32(0);
-export let ONE_BI = BigInt.fromI32(1);
-export let ZERO_BD = BigDecimal.fromString("0");
-export let ONE_BD = BigDecimal.fromString("1");
-export let BI_18 = BigInt.fromI32(18);
-
-export let factoryContract = FactoryContract.bind(Address.fromString(FACTORY_ADDRESS));
+export let factoryContract = FactoryContract.bind(
+  Address.fromString(FACTORY_ADDRESS)
+);
 
 export function exponentToBigDecimal(decimals: BigInt): BigDecimal {
   let bd = BigDecimal.fromString("1");
@@ -26,7 +33,10 @@ export function exponentToBigDecimal(decimals: BigInt): BigDecimal {
   return bd;
 }
 
-export function convertTokenToDecimal(tokenAmount: BigInt, exchangeDecimals: BigInt): BigDecimal {
+export function convertTokenToDecimal(
+  tokenAmount: BigInt,
+  exchangeDecimals: BigInt
+): BigDecimal {
   if (exchangeDecimals == ZERO_BI) {
     return tokenAmount.toBigDecimal();
   }
@@ -34,7 +44,10 @@ export function convertTokenToDecimal(tokenAmount: BigInt, exchangeDecimals: Big
 }
 
 export function isNullMaticValue(value: string): boolean {
-  return value == "0x0000000000000000000000000000000000000000000000000000000000000001";
+  return (
+    value ==
+    "0x0000000000000000000000000000000000000000000000000000000000000001"
+  );
 }
 
 export function fetchTokenSymbol(tokenAddress: Address): string {
@@ -95,7 +108,10 @@ export function fetchTokenTotalSupply(tokenAddress: Address): BigInt {
   return BigInt.fromI32(totalSupplyValue as i32);
 }
 
-export function createLiquidityPosition(exchange: Address, user: Address): LiquidityPosition {
+export function createLiquidityPosition(
+  exchange: Address,
+  user: Address
+): LiquidityPosition {
   let id = exchange.toHexString().concat("-").concat(user.toHexString());
   let liquidityTokenBalance = LiquidityPosition.load(id);
   if (liquidityTokenBalance === null) {
@@ -108,7 +124,8 @@ export function createLiquidityPosition(exchange: Address, user: Address): Liqui
     liquidityTokenBalance.save();
     pair.save();
   }
-  if (liquidityTokenBalance === null) log.error("LiquidityTokenBalance is null", [id]);
+  if (liquidityTokenBalance === null)
+    log.error("LiquidityTokenBalance is null", [id]);
   return liquidityTokenBalance as LiquidityPosition;
 }
 
@@ -121,7 +138,10 @@ export function createUser(address: Address): void {
   }
 }
 
-export function createLiquiditySnapshot(position: LiquidityPosition, event: ethereum.Event): void {
+export function createLiquiditySnapshot(
+  position: LiquidityPosition,
+  event: ethereum.Event
+): void {
   let timestamp = event.block.timestamp.toI32();
   let bundle = Bundle.load("1");
   let pair = Pair.load(position.pair);
@@ -129,7 +149,9 @@ export function createLiquiditySnapshot(position: LiquidityPosition, event: ethe
   let token1 = Token.load(pair.token1);
 
   // create new snapshot
-  let snapshot = new LiquidityPositionSnapshot(position.id.concat(timestamp.toString()));
+  let snapshot = new LiquidityPositionSnapshot(
+    position.id.concat(timestamp.toString())
+  );
   snapshot.liquidityPosition = position.id;
   snapshot.timestamp = timestamp;
   snapshot.block = event.block.number.toI32();

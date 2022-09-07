@@ -1,0 +1,7 @@
+{
+	"network": "mumbai",
+	"ax_factory_address": "0x0000000000000000000000000000000000000000",
+	"ax_factory_start_block": 0,
+	"ax_token_address": "0x0000000000000000000000000000000000000000",
+	"wrapped_gas_token_address": "0x0000000000000000000000000000000000000000"
+}
