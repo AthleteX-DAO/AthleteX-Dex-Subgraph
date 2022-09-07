@@ -19,7 +19,7 @@ import {
   LiquidityPositionSnapshot,
   Pair,
 } from "../../generated/schema";
-import { FACTORY_ADDRESS, ONE_BI, ZERO_BD, ZERO_BI } from "./constant";
+import { FACTORY_ADDRESS, ONE_BI, ZERO_BD, ZERO_BI } from "./constants";
 
 export let factoryContract = FactoryContract.bind(
   Address.fromString(FACTORY_ADDRESS)

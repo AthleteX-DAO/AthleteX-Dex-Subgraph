@@ -1,5 +1,5 @@
 /* eslint-disable prefer-const */
-import { PairHourData } from "../generated/schema";
+import { PairHourData } from "../../generated/schema";
 import { BigInt, BigDecimal, ethereum } from "@graphprotocol/graph-ts";
 import {
   Pair,
@@ -9,8 +9,8 @@ import {
   AthleteXDayData,
   PairDayData,
   TokenDayData,
-} from "../generated/schema";
-import { ONE_BI, ZERO_BD, ZERO_BI, FACTORY_ADDRESS } from "./utils/constant";
+} from "../../generated/schema";
+import { ONE_BI, ZERO_BD, ZERO_BI, FACTORY_ADDRESS } from "../utils/constants";
 
 export function updateAthleteXDayData(event: ethereum.Event): AthleteXDayData {
   let athleteX = AthleteXFactory.load(FACTORY_ADDRESS);

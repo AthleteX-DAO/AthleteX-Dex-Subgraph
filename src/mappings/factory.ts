@@ -8,7 +8,7 @@ import {
   fetchTokenDecimals,
   fetchTokenTotalSupply,
 } from "../utils/helper";
-import { FACTORY_ADDRESS, ZERO_BD, ZERO_BI, ONE_BI } from "../utils/constant";
+import { FACTORY_ADDRESS, ZERO_BD, ZERO_BI, ONE_BI } from "../utils/constants";
 
 export function handlePairCreated(event: PairCreated): void {
   let factory = AthleteXFactory.load(event.address.toHexString());

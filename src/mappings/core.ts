@@ -45,7 +45,7 @@ import {
   ONE_BI,
   ZERO_BD,
   BI_18,
-} from "../utils/constant";
+} from "../utils/constants";
 
 let MINING_POOLS: string[] = [];
 

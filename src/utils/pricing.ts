@@ -8,7 +8,7 @@ import {
   ADDRESS_ZERO,
   WRAPPED_GAS_TOKEN_ADDRESS,
   AX_ADDRESS,
-} from "./constant";
+} from "./constants";
 
 export function getMaticPriceInUSD(): BigDecimal {
   // fetch eth prices for each stablecoin
