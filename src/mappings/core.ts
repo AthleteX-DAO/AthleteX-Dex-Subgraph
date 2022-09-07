@@ -114,7 +114,10 @@ export function handleTransfer(event: Transfer): void {
     pair.save();
 
     // create new mint if no mints so far or if last one is done already
-    if (mints.length === 0 || isCompleteMint(mints[mints.length - 1] as string)) {
+    if (
+      mints.length === 0 ||
+      isCompleteMint(mints[mints.length - 1] as string)
+    ) {
       let mint = new MintEvent(
         eventHashAsHexString
           .concat("-")
@@ -225,12 +228,12 @@ export function handleTransfer(event: Transfer): void {
     }
 
     // if this logical burn included a fee mint, account for this
-    let mintId = mints.length !== 0 && mints[mints.length - 1] as string;
+    let mintId = mints.length !== 0 && (mints[mints.length - 1] as string);
 
     if (mintId && !isCompleteMint(mintId)) {
       let mint = MintEvent.load(mintId);
       if (!mint) {
-        mint = new MintEvent(mintId);      
+        mint = new MintEvent(mintId);
       }
       burn.feeTo = mint.to;
       burn.feeLiquidity = mint.liquidity;
@@ -382,8 +385,11 @@ export function handleMint(event: Mint): void {
   let mintId = mints[mints.length - 1] as string;
 
   let mint = MintEvent.load(mintId) || new MintEvent(mintId);
-  let pair = Pair.load(event.address.toHex()) || new Pair(event.address.toHex());
-  let athleteX = AthleteXFactory.load(FACTORY_ADDRESS) || new AthleteXFactory(FACTORY_ADDRESS);
+  let pair =
+    Pair.load(event.address.toHex()) || new Pair(event.address.toHex());
+  let athleteX =
+    AthleteXFactory.load(FACTORY_ADDRESS) ||
+    new AthleteXFactory(FACTORY_ADDRESS);
 
   let token0 = Token.load(pair.token0) || new Token(pair.token0);
   let token1 = Token.load(pair.token1) || new Token(pair.token1);
@@ -404,10 +410,14 @@ export function handleMint(event: Mint): void {
 
   // get new amounts of USD and MATIC for tracking
   let bundle = Bundle.load("1") || new Bundle("1");
-  let amountTotalUSD = token1.derivedMATIC && token1.derivedMATIC
-    .times(token1Amount)
-    .plus(token0.derivedMATIC ? token0.derivedMATIC.times(token0Amount) : ZERO_BD)
-    .times(bundle.maticPrice);
+  let amountTotalUSD =
+    token1.derivedMATIC &&
+    token1.derivedMATIC
+      .times(token1Amount)
+      .plus(
+        token0.derivedMATIC ? token0.derivedMATIC.times(token0Amount) : ZERO_BD
+      )
+      .times(bundle.maticPrice);
 
   // update txn counts
   pair.totalTransactions = pair.totalTransactions.plus(ONE_BI);
@@ -450,8 +460,11 @@ export function handleBurn(event: Burn): void {
   let burnId = burns[burns.length - 1] as string;
   let burn = BurnEvent.load(burnId) || new BurnEvent(burnId);
 
-  let pair = Pair.load(event.address.toHex()) || new Pair(event.address.toHex());
-  let athleteX = AthleteXFactory.load(FACTORY_ADDRESS) || new AthleteXFactory(FACTORY_ADDRESS);
+  let pair =
+    Pair.load(event.address.toHex()) || new Pair(event.address.toHex());
+  let athleteX =
+    AthleteXFactory.load(FACTORY_ADDRESS) ||
+    new AthleteXFactory(FACTORY_ADDRESS);
 
   //update token info
   let token0 = Token.load(pair.token0) || new Token(pair.token0);
@@ -471,10 +484,14 @@ export function handleBurn(event: Burn): void {
 
   // get new amounts of USD and MATIC for tracking
   let bundle = Bundle.load("1") || new Bundle("1");
-  let amountTotalUSD = token1.derivedMATIC && token1.derivedMATIC
-    .times(token1Amount)
-    .plus(token0.derivedMATIC ? token0.derivedMATIC.times(token0Amount) : ZERO_BD)
-    .times(bundle.maticPrice);
+  let amountTotalUSD =
+    token1.derivedMATIC &&
+    token1.derivedMATIC
+      .times(token1Amount)
+      .plus(
+        token0.derivedMATIC ? token0.derivedMATIC.times(token0Amount) : ZERO_BD
+      )
+      .times(bundle.maticPrice);
 
   // update txn counts
   athleteX.totalTransactions = athleteX.totalTransactions.plus(ONE_BI);
@@ -510,7 +527,8 @@ export function handleBurn(event: Burn): void {
 }
 
 export function handleSwap(event: Swap): void {
-  let pair = Pair.load(event.address.toHex()) || new Pair(event.address.toHex());
+  let pair =
+    Pair.load(event.address.toHex()) || new Pair(event.address.toHex());
   let token0 = Token.load(pair.token0) || new Token(pair.token0);
   let token1 = Token.load(pair.token1) || new Token(pair.token1);
   let amount0In = convertTokenToDecimal(
@@ -538,10 +556,16 @@ export function handleSwap(event: Swap): void {
   let bundle = Bundle.load("1") || new Bundle("1");
 
   // get total amounts of derived USD and MATIC for tracking
-  let derivedAmountMATIC = token1.derivedMATIC ? token1.derivedMATIC
-    .times(amount1Total)
-    .plus(token0.derivedMATIC ? token0.derivedMATIC.times(amount0Total) : ZERO_BD)
-    .div(BigDecimal.fromString("2")) : ZERO_BD;
+  let derivedAmountMATIC = token1.derivedMATIC
+    ? token1.derivedMATIC
+        .times(amount1Total)
+        .plus(
+          token0.derivedMATIC
+            ? token0.derivedMATIC.times(amount0Total)
+            : ZERO_BD
+        )
+        .div(BigDecimal.fromString("2"))
+    : ZERO_BD;
   let derivedAmountUSD = derivedAmountMATIC.times(bundle.maticPrice);
 
   // only accounts for volume through white listed tokens
@@ -583,7 +607,9 @@ export function handleSwap(event: Swap): void {
   pair.save();
 
   // update global values, only used tracked amounts for volume
-  let athleteX = AthleteXFactory.load(FACTORY_ADDRESS) || new AthleteXFactory(FACTORY_ADDRESS);
+  let athleteX =
+    AthleteXFactory.load(FACTORY_ADDRESS) ||
+    new AthleteXFactory(FACTORY_ADDRESS);
   athleteX.totalVolumeUSD = athleteX.totalVolumeUSD.plus(trackedAmountUSD);
   athleteX.totalVolumeMATIC =
     athleteX.totalVolumeMATIC.plus(trackedAmountMATIC);
