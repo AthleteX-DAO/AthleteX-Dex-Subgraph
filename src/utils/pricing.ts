@@ -56,19 +56,19 @@ export function findMaticPerToken(token: Token): BigDecimal {
       Address.fromString(WHITELIST[i])
     );
     if (pairAddress.toHex() != ADDRESS_ZERO) {
-      let pair = Pair.load(pairAddress.toHex());
+      let pair = Pair.load(pairAddress.toHex()) || new Pair(pairAddress.toHex());
       if (
         pair.token0 == token.id &&
         pair.reserveMATIC.gt(MINIMUM_LIQUIDITY_THRESHOLD_MATIC)
       ) {
-        let token1 = Token.load(pair.token1);
+        let token1 = Token.load(pair.token1) || new Token(pair.token1);
         return pair.token1Price.times(token1.derivedMATIC as BigDecimal); // return token1 per our token * MATIC per token 1
       }
       if (
         pair.token1 == token.id &&
         pair.reserveMATIC.gt(MINIMUM_LIQUIDITY_THRESHOLD_MATIC)
       ) {
-        let token0 = Token.load(pair.token0);
+        let token0 = Token.load(pair.token0) || new Token(pair.token0);
         return pair.token0Price.times(token0.derivedMATIC as BigDecimal); // return token0 per our token * MATIC per token 0
       }
     }
@@ -89,8 +89,8 @@ export function getTrackedVolumeUSD(
   tokenAmount1: BigDecimal,
   token1: Token
 ): BigDecimal {
-  let price0 = token0.derivedMATIC.times(bundle.maticPrice);
-  let price1 = token1.derivedMATIC.times(bundle.maticPrice);
+  let price0 = token0.derivedMATIC ? token0.derivedMATIC.times(bundle.maticPrice) : ZERO_BD;
+  let price1 = token1.derivedMATIC ? token1.derivedMATIC.times(bundle.maticPrice) : ZERO_BD;
 
   // both are whitelist tokens, take average of both amounts
   if (WHITELIST.includes(token0.id) && WHITELIST.includes(token1.id)) {
@@ -127,8 +127,8 @@ export function getTrackedLiquidityUSD(
   tokenAmount1: BigDecimal,
   token1: Token
 ): BigDecimal {
-  let price0 = token0.derivedMATIC.times(bundle.maticPrice);
-  let price1 = token1.derivedMATIC.times(bundle.maticPrice);
+  let price0 = token0.derivedMATIC ? token0.derivedMATIC.times(bundle.maticPrice) : ZERO_BD;
+  let price1 = token1.derivedMATIC ? token1.derivedMATIC.times(bundle.maticPrice) : ZERO_BD;
 
   // both are whitelist tokens, take average of both amounts
   if (WHITELIST.includes(token0.id) && WHITELIST.includes(token1.id)) {

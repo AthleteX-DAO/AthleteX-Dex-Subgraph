@@ -95,17 +95,17 @@ export function fetchTokenDecimals(tokenAddress: Address): BigInt {
   if (!decimalResult.reverted) {
     decimalValue = decimalResult.value;
   }
-  return BigInt.fromI32(decimalValue as i32);
+  return BigInt.fromI32(decimalValue);
 }
 
 export function fetchTokenTotalSupply(tokenAddress: Address): BigInt {
   let contract = ERC20.bind(tokenAddress);
-  let totalSupplyValue = null;
+  let totalSupplyValue = BigInt.fromI32(0);
   let totalSupplyResult = contract.try_totalSupply();
   if (!totalSupplyResult.reverted) {
-    totalSupplyValue = totalSupplyResult as i32;
+    totalSupplyValue = totalSupplyResult.value;
   }
-  return BigInt.fromI32(totalSupplyValue as i32);
+  return BigInt.fromI32(totalSupplyValue);
 }
 
 export function createLiquidityPosition(
@@ -115,7 +115,7 @@ export function createLiquidityPosition(
   let id = exchange.toHexString().concat("-").concat(user.toHexString());
   let liquidityTokenBalance = LiquidityPosition.load(id);
   if (liquidityTokenBalance === null) {
-    let pair = Pair.load(exchange.toHexString());
+    let pair = Pair.load(exchange.toHexString()) || new Pair(exchange.toHexString());
     pair.liquidityProviderCount = pair.liquidityProviderCount.plus(ONE_BI);
     liquidityTokenBalance = new LiquidityPosition(id);
     liquidityTokenBalance.liquidityTokenBalance = ZERO_BD;
@@ -143,10 +143,10 @@ export function createLiquiditySnapshot(
   event: ethereum.Event
 ): void {
   let timestamp = event.block.timestamp.toI32();
-  let bundle = Bundle.load("1");
-  let pair = Pair.load(position.pair);
-  let token0 = Token.load(pair.token0);
-  let token1 = Token.load(pair.token1);
+  let bundle = Bundle.load("1") || new Bundle("1");
+  let pair = Pair.load(position.pair) || new Pair(position.pair);
+  let token0 = Token.load(pair.token0) || new Token(pair.token0);
+  let token1 = Token.load(pair.token1) || new Token(pair.token1);
 
   // create new snapshot
   let snapshot = new LiquidityPositionSnapshot(
@@ -157,8 +157,8 @@ export function createLiquiditySnapshot(
   snapshot.block = event.block.number.toI32();
   snapshot.user = position.user;
   snapshot.pair = position.pair;
-  snapshot.token0PriceUSD = token0.derivedMATIC.times(bundle.maticPrice);
-  snapshot.token1PriceUSD = token1.derivedMATIC.times(bundle.maticPrice);
+  snapshot.token0PriceUSD = token0.derivedMATIC ? token0.derivedMATIC.times(bundle.maticPrice) : ZERO_BD;
+  snapshot.token1PriceUSD = token1.derivedMATIC ? token1.derivedMATIC.times(bundle.maticPrice) : ZERO_BD;
   snapshot.reserve0 = pair.reserve0;
   snapshot.reserve1 = pair.reserve1;
   snapshot.reserveUSD = pair.reserveUSD;
