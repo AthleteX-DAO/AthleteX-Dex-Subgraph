@@ -50,7 +50,7 @@ import {
 let MINING_POOLS: string[] = [];
 
 function isCompleteMint(mintId: string): boolean {
-  const mint = MintEvent.load(mintId);
+  let mint = MintEvent.load(mintId);
 
   if (mint) {
     return mint.sender !== null; // sufficient checks
@@ -228,13 +228,10 @@ export function handleTransfer(event: Transfer): void {
     }
 
     // if this logical burn included a fee mint, account for this
-    let mintId = mints.length !== 0 && (mints[mints.length - 1] as string);
+    let mintId = mints[mints.length - 1] as string;
 
-    if (mintId && !isCompleteMint(mintId)) {
-      let mint = MintEvent.load(mintId);
-      if (!mint) {
-        mint = new MintEvent(mintId);
-      }
+    if (!isCompleteMint(mintId)) {
+      let mint = MintEvent.load(mintId) || new MintEvent(mintId);
       burn.feeTo = mint.to;
       burn.feeLiquidity = mint.liquidity;
       // remove the logical mint

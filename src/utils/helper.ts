@@ -105,7 +105,7 @@ export function fetchTokenTotalSupply(tokenAddress: Address): BigInt {
   if (!totalSupplyResult.reverted) {
     totalSupplyValue = totalSupplyResult.value;
   }
-  return BigInt.fromI32(totalSupplyValue);
+  return totalSupplyValue;
 }
 
 export function createLiquidityPosition(
