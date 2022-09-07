@@ -56,7 +56,8 @@ export function findMaticPerToken(token: Token): BigDecimal {
       Address.fromString(WHITELIST[i])
     );
     if (pairAddress.toHex() != ADDRESS_ZERO) {
-      let pair = Pair.load(pairAddress.toHex()) || new Pair(pairAddress.toHex());
+      let pair =
+        Pair.load(pairAddress.toHex()) || new Pair(pairAddress.toHex());
       if (
         pair.token0 == token.id &&
         pair.reserveMATIC.gt(MINIMUM_LIQUIDITY_THRESHOLD_MATIC)
@@ -89,8 +90,12 @@ export function getTrackedVolumeUSD(
   tokenAmount1: BigDecimal,
   token1: Token
 ): BigDecimal {
-  let price0 = token0.derivedMATIC ? token0.derivedMATIC.times(bundle.maticPrice) : ZERO_BD;
-  let price1 = token1.derivedMATIC ? token1.derivedMATIC.times(bundle.maticPrice) : ZERO_BD;
+  let price0 = token0.derivedMATIC
+    ? token0.derivedMATIC.times(bundle.maticPrice)
+    : ZERO_BD;
+  let price1 = token1.derivedMATIC
+    ? token1.derivedMATIC.times(bundle.maticPrice)
+    : ZERO_BD;
 
   // both are whitelist tokens, take average of both amounts
   if (WHITELIST.includes(token0.id) && WHITELIST.includes(token1.id)) {
@@ -127,8 +132,12 @@ export function getTrackedLiquidityUSD(
   tokenAmount1: BigDecimal,
   token1: Token
 ): BigDecimal {
-  let price0 = token0.derivedMATIC ? token0.derivedMATIC.times(bundle.maticPrice) : ZERO_BD;
-  let price1 = token1.derivedMATIC ? token1.derivedMATIC.times(bundle.maticPrice) : ZERO_BD;
+  let price0 = token0.derivedMATIC
+    ? token0.derivedMATIC.times(bundle.maticPrice)
+    : ZERO_BD;
+  let price1 = token1.derivedMATIC
+    ? token1.derivedMATIC.times(bundle.maticPrice)
+    : ZERO_BD;
 
   // both are whitelist tokens, take average of both amounts
   if (WHITELIST.includes(token0.id) && WHITELIST.includes(token1.id)) {

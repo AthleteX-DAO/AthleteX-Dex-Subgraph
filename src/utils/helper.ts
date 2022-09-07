@@ -115,7 +115,8 @@ export function createLiquidityPosition(
   let id = exchange.toHexString().concat("-").concat(user.toHexString());
   let liquidityTokenBalance = LiquidityPosition.load(id);
   if (liquidityTokenBalance === null) {
-    let pair = Pair.load(exchange.toHexString()) || new Pair(exchange.toHexString());
+    let pair =
+      Pair.load(exchange.toHexString()) || new Pair(exchange.toHexString());
     pair.liquidityProviderCount = pair.liquidityProviderCount.plus(ONE_BI);
     liquidityTokenBalance = new LiquidityPosition(id);
     liquidityTokenBalance.liquidityTokenBalance = ZERO_BD;
@@ -157,8 +158,12 @@ export function createLiquiditySnapshot(
   snapshot.block = event.block.number.toI32();
   snapshot.user = position.user;
   snapshot.pair = position.pair;
-  snapshot.token0PriceUSD = token0.derivedMATIC ? token0.derivedMATIC.times(bundle.maticPrice) : ZERO_BD;
-  snapshot.token1PriceUSD = token1.derivedMATIC ? token1.derivedMATIC.times(bundle.maticPrice) : ZERO_BD;
+  snapshot.token0PriceUSD = token0.derivedMATIC
+    ? token0.derivedMATIC.times(bundle.maticPrice)
+    : ZERO_BD;
+  snapshot.token1PriceUSD = token1.derivedMATIC
+    ? token1.derivedMATIC.times(bundle.maticPrice)
+    : ZERO_BD;
   snapshot.reserve0 = pair.reserve0;
   snapshot.reserve1 = pair.reserve1;
   snapshot.reserveUSD = pair.reserveUSD;
