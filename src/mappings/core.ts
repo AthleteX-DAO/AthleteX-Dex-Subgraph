@@ -1,6 +1,13 @@
 /* eslint-disable prefer-const */
 import { BigInt, BigDecimal, store, Address } from "@graphprotocol/graph-ts";
 import {
+  Mint,
+  Burn,
+  Swap,
+  Transfer,
+  Sync,
+} from "../../generated/templates/Pair/Pair";
+import {
   Pair,
   Token,
   AthleteXFactory,
@@ -9,26 +16,47 @@ import {
   Burn as BurnEvent,
   Swap as SwapEvent,
   Bundle,
-} from "../generated/schema";
-import { Mint, Burn, Swap, Transfer, Sync } from "../generated/templates/Pair/Pair";
-import { updatePairDayData, updateTokenDayData, updateAthleteXDayData, updatePairHourData } from "./dayUpdates";
-import { getMaticPriceInUSD, findMaticPerToken, getTrackedVolumeUSD, getTrackedLiquidityUSD } from "./pricing";
+} from "../../generated/schema";
+
+import {
+  updatePairDayData,
+  updateTokenDayData,
+  updateAthleteXDayData,
+  updatePairHourData,
+} from "../utils/updater";
+
+import {
+  getMaticPriceInUSD,
+  findMaticPerToken,
+  getTrackedVolumeUSD,
+  getTrackedLiquidityUSD,
+} from "../utils/pricing";
+
 import {
   convertTokenToDecimal,
+  createUser,
+  createLiquidityPosition,
+  createLiquiditySnapshot,
+} from "../utils/helper";
+
+import {
   ADDRESS_ZERO,
   FACTORY_ADDRESS,
   ONE_BI,
-  createUser,
-  createLiquidityPosition,
   ZERO_BD,
   BI_18,
-  createLiquiditySnapshot,
-} from "./utils";
+} from "../utils/constants";
 
 let MINING_POOLS: string[] = [];
 
 function isCompleteMint(mintId: string): boolean {
-  return MintEvent.load(mintId).sender !== null; // sufficient checks
+  let mint = MintEvent.load(mintId);
+
+  if (mint) {
+    return mint.sender !== null; // sufficient checks
+  }
+
+  return false;
 }
 
 export function handleTransfer(event: Transfer): void {
@@ -37,12 +65,18 @@ export function handleTransfer(event: Transfer): void {
   let eventHashAsHexString = event.transaction.hash.toHex();
 
   // ignore initial transfers for first adds
-  if (eventToAsHexString == ADDRESS_ZERO && event.params.value.equals(BigInt.fromI32(1000))) {
+  if (
+    eventToAsHexString == ADDRESS_ZERO &&
+    event.params.value.equals(BigInt.fromI32(1000))
+  ) {
     return;
   }
 
   // skip if staking/unstaking
-  if (MINING_POOLS.includes(eventFromAsHexString) || MINING_POOLS.includes(eventToAsHexString)) {
+  if (
+    MINING_POOLS.includes(eventFromAsHexString) ||
+    MINING_POOLS.includes(eventToAsHexString)
+  ) {
     return;
   }
 
@@ -54,6 +88,9 @@ export function handleTransfer(event: Transfer): void {
 
   // get pair and load contract
   let pair = Pair.load(event.address.toHex());
+  if (!pair) {
+    pair = new Pair(event.address.toHex());
+  }
 
   // liquidity token amount being transferred
   let value = convertTokenToDecimal(event.params.value, BI_18);
@@ -77,8 +114,15 @@ export function handleTransfer(event: Transfer): void {
     pair.save();
 
     // create new mint if no mints so far or if last one is done already
-    if (mints.length === 0 || isCompleteMint(mints[mints.length - 1])) {
-      let mint = new MintEvent(eventHashAsHexString.concat("-").concat(BigInt.fromI32(mints.length).toString()));
+    if (
+      mints.length === 0 ||
+      isCompleteMint(mints[mints.length - 1] as string)
+    ) {
+      let mint = new MintEvent(
+        eventHashAsHexString
+          .concat("-")
+          .concat(BigInt.fromI32(mints.length).toString())
+      );
       mint.transaction = transaction.id;
       mint.pair = pair.id;
       mint.to = event.params.to;
@@ -94,7 +138,11 @@ export function handleTransfer(event: Transfer): void {
       transaction.save();
     } else {
       // if this logical mint included a fee mint, account for this
-      let mint = MintEvent.load(mints[mints.length - 1]);
+      let mint = MintEvent.load(mints[mints.length - 1] as string);
+      if (!mint) {
+        mint = new MintEvent(mints[mints.length - 1] as string);
+      }
+
       mint.feeTo = mint.to;
       mint.to = to;
       mint.feeLiquidity = mint.liquidity;
@@ -109,7 +157,11 @@ export function handleTransfer(event: Transfer): void {
   // case where direct send first on MATIC withdrawals
   if (eventToAsHexString == pair.id) {
     let burns = transaction.burns;
-    let burn = new BurnEvent(eventHashAsHexString.concat("-").concat(BigInt.fromI32(burns.length).toString()));
+    let burn = new BurnEvent(
+      eventHashAsHexString
+        .concat("-")
+        .concat(BigInt.fromI32(burns.length).toString())
+    );
     burn.transaction = transaction.id;
     burn.pair = pair.id;
     burn.liquidity = value;
@@ -128,7 +180,10 @@ export function handleTransfer(event: Transfer): void {
   }
 
   // burn
-  if (event.params.to.toHex() == ADDRESS_ZERO && event.params.from.toHex() == pair.id) {
+  if (
+    event.params.to.toHex() == ADDRESS_ZERO &&
+    event.params.from.toHex() == pair.id
+  ) {
     pair.totalSupply = pair.totalSupply.minus(value);
     pair.save();
 
@@ -136,12 +191,19 @@ export function handleTransfer(event: Transfer): void {
     let burns = transaction.burns;
     let burn: BurnEvent;
     if (burns.length > 0) {
-      let currentBurn = BurnEvent.load(burns[burns.length - 1]);
+      let currentBurn = BurnEvent.load(burns[burns.length - 1] as string);
+      if (!currentBurn) {
+        currentBurn = new BurnEvent(burns[burns.length - 1] as string);
+      }
+
       if (currentBurn.needsComplete) {
         burn = currentBurn as BurnEvent;
       } else {
         burn = new BurnEvent(
-          event.transaction.hash.toHex().concat("-").concat(BigInt.fromI32(burns.length).toString())
+          event.transaction.hash
+            .toHex()
+            .concat("-")
+            .concat(BigInt.fromI32(burns.length).toString())
         );
         burn.transaction = transaction.id;
         burn.needsComplete = false;
@@ -151,7 +213,12 @@ export function handleTransfer(event: Transfer): void {
         burn.timestamp = transaction.timestamp;
       }
     } else {
-      burn = new BurnEvent(event.transaction.hash.toHex().concat("-").concat(BigInt.fromI32(burns.length).toString()));
+      burn = new BurnEvent(
+        event.transaction.hash
+          .toHex()
+          .concat("-")
+          .concat(BigInt.fromI32(burns.length).toString())
+      );
       burn.transaction = transaction.id;
       burn.needsComplete = false;
       burn.pair = pair.id;
@@ -161,12 +228,14 @@ export function handleTransfer(event: Transfer): void {
     }
 
     // if this logical burn included a fee mint, account for this
-    if (mints.length !== 0 && !isCompleteMint(mints[mints.length - 1])) {
-      let mint = MintEvent.load(mints[mints.length - 1]);
+    let mintId = mints[mints.length - 1] as string;
+
+    if (!isCompleteMint(mintId)) {
+      let mint = MintEvent.load(mintId) || new MintEvent(mintId);
       burn.feeTo = mint.to;
       burn.feeLiquidity = mint.liquidity;
       // remove the logical mint
-      store.remove("Mint", mints[mints.length - 1]);
+      store.remove("Mint", mintId);
       // update the transaction
 
       // TODO: Consider using .slice().pop() to protect against unintended
@@ -193,19 +262,24 @@ export function handleTransfer(event: Transfer): void {
   }
 
   if (eventFromAsHexString != ADDRESS_ZERO && eventFromAsHexString != pair.id) {
-    let fromUserLiquidityPosition = createLiquidityPosition(event.address, from);
-    fromUserLiquidityPosition.liquidityTokenBalance = fromUserLiquidityPosition.liquidityTokenBalance.minus(
-      convertTokenToDecimal(event.params.value, BI_18)
+    let fromUserLiquidityPosition = createLiquidityPosition(
+      event.address,
+      from
     );
+    fromUserLiquidityPosition.liquidityTokenBalance =
+      fromUserLiquidityPosition.liquidityTokenBalance.minus(
+        convertTokenToDecimal(event.params.value, BI_18)
+      );
     fromUserLiquidityPosition.save();
     createLiquiditySnapshot(fromUserLiquidityPosition, event);
   }
 
   if (eventToAsHexString != ADDRESS_ZERO && eventToAsHexString != pair.id) {
     let toUserLiquidityPosition = createLiquidityPosition(event.address, to);
-    toUserLiquidityPosition.liquidityTokenBalance = toUserLiquidityPosition.liquidityTokenBalance.plus(
-      convertTokenToDecimal(event.params.value, BI_18)
-    );
+    toUserLiquidityPosition.liquidityTokenBalance =
+      toUserLiquidityPosition.liquidityTokenBalance.plus(
+        convertTokenToDecimal(event.params.value, BI_18)
+      );
     toUserLiquidityPosition.save();
     createLiquiditySnapshot(toUserLiquidityPosition, event);
   }
@@ -215,12 +289,20 @@ export function handleTransfer(event: Transfer): void {
 
 export function handleSync(event: Sync): void {
   let pair = Pair.load(event.address.toHex());
-  let token0 = Token.load(pair.token0);
-  let token1 = Token.load(pair.token1);
-  let athleteX = AthleteXFactory.load(FACTORY_ADDRESS);
+  if (!pair) {
+    pair = new Pair(event.address.toHex());
+  }
 
+  let token0 = Token.load(pair.token0) || new Token(pair.token0);
+  let token1 = Token.load(pair.token1) || new Token(pair.token1);
+  let athleteX = AthleteXFactory.load(FACTORY_ADDRESS);
+  if (!athleteX) {
+    athleteX = new AthleteXFactory(FACTORY_ADDRESS);
+  }
   // reset factory liquidity by subtracting only tracked liquidity
-  athleteX.totalLiquidityMATIC = athleteX.totalLiquidityMATIC.minus(pair.trackedReserveMATIC as BigDecimal);
+  athleteX.totalLiquidityMATIC = athleteX.totalLiquidityMATIC.minus(
+    pair.trackedReserveMATIC as BigDecimal
+  );
 
   // reset token total liquidity amounts
   token0.totalLiquidity = token0.totalLiquidity.minus(pair.reserve0);
@@ -229,12 +311,14 @@ export function handleSync(event: Sync): void {
   pair.reserve0 = convertTokenToDecimal(event.params.reserve0, token0.decimals);
   pair.reserve1 = convertTokenToDecimal(event.params.reserve1, token1.decimals);
 
-  if (pair.reserve1.notEqual(ZERO_BD)) pair.token0Price = pair.reserve0.div(pair.reserve1);
+  if (pair.reserve1.notEqual(ZERO_BD))
+    pair.token0Price = pair.reserve0.div(pair.reserve1);
   else pair.token0Price = ZERO_BD;
-  if (pair.reserve0.notEqual(ZERO_BD)) pair.token1Price = pair.reserve1.div(pair.reserve0);
+  if (pair.reserve0.notEqual(ZERO_BD))
+    pair.token1Price = pair.reserve1.div(pair.reserve0);
   else pair.token1Price = ZERO_BD;
 
-  let bundle = Bundle.load("1");
+  let bundle = Bundle.load("1") || new Bundle("1");
   bundle.maticPrice = getMaticPriceInUSD();
   bundle.save();
 
@@ -270,8 +354,12 @@ export function handleSync(event: Sync): void {
   pair.reserveUSD = pair.reserveMATIC.times(bundle.maticPrice);
 
   // use tracked amounts globally
-  athleteX.totalLiquidityMATIC = athleteX.totalLiquidityMATIC.plus(trackedLiquidityMATIC);
-  athleteX.totalLiquidityUSD = athleteX.totalLiquidityMATIC.times(bundle.maticPrice);
+  athleteX.totalLiquidityMATIC = athleteX.totalLiquidityMATIC.plus(
+    trackedLiquidityMATIC
+  );
+  athleteX.totalLiquidityUSD = athleteX.totalLiquidityMATIC.times(
+    bundle.maticPrice
+  );
 
   // now correctly set liquidity amounts for each token
   token0.totalLiquidity = token0.totalLiquidity.plus(pair.reserve0);
@@ -285,30 +373,48 @@ export function handleSync(event: Sync): void {
 }
 
 export function handleMint(event: Mint): void {
-  let transaction = Transaction.load(event.transaction.hash.toHex());
-  let mints = transaction.mints;
-  let mint = MintEvent.load(mints[mints.length - 1]);
+  let tx = Transaction.load(event.transaction.hash.toHex());
+  if (!tx) {
+    tx = new Transaction(event.transaction.hash.toHex());
+  }
 
-  let pair = Pair.load(event.address.toHex());
-  let athleteX = AthleteXFactory.load(FACTORY_ADDRESS);
+  let mints = tx.mints;
+  let mintId = mints[mints.length - 1] as string;
 
-  let token0 = Token.load(pair.token0);
-  let token1 = Token.load(pair.token1);
+  let mint = MintEvent.load(mintId) || new MintEvent(mintId);
+  let pair =
+    Pair.load(event.address.toHex()) || new Pair(event.address.toHex());
+  let athleteX =
+    AthleteXFactory.load(FACTORY_ADDRESS) ||
+    new AthleteXFactory(FACTORY_ADDRESS);
+
+  let token0 = Token.load(pair.token0) || new Token(pair.token0);
+  let token1 = Token.load(pair.token1) || new Token(pair.token1);
 
   // update exchange info (except balances, sync will cover that)
-  let token0Amount = convertTokenToDecimal(event.params.amount0, token0.decimals);
-  let token1Amount = convertTokenToDecimal(event.params.amount1, token1.decimals);
+  let token0Amount = convertTokenToDecimal(
+    event.params.amount0,
+    token0.decimals
+  );
+  let token1Amount = convertTokenToDecimal(
+    event.params.amount1,
+    token1.decimals
+  );
 
   // update txn counts
   token0.totalTransactions = token0.totalTransactions.plus(ONE_BI);
   token1.totalTransactions = token1.totalTransactions.plus(ONE_BI);
 
   // get new amounts of USD and MATIC for tracking
-  let bundle = Bundle.load("1");
-  let amountTotalUSD = token1.derivedMATIC
-    .times(token1Amount)
-    .plus(token0.derivedMATIC.times(token0Amount))
-    .times(bundle.maticPrice);
+  let bundle = Bundle.load("1") || new Bundle("1");
+  let amountTotalUSD =
+    token1.derivedMATIC &&
+    token1.derivedMATIC
+      .times(token1Amount)
+      .plus(
+        token0.derivedMATIC ? token0.derivedMATIC.times(token0Amount) : ZERO_BD
+      )
+      .times(bundle.maticPrice);
 
   // update txn counts
   pair.totalTransactions = pair.totalTransactions.plus(ONE_BI);
@@ -328,7 +434,10 @@ export function handleMint(event: Mint): void {
   mint.save();
 
   // update the LP position
-  let liquidityPosition = createLiquidityPosition(event.address, mint.to as Address);
+  let liquidityPosition = createLiquidityPosition(
+    event.address,
+    mint.to as Address
+  );
   createLiquiditySnapshot(liquidityPosition, event);
 
   updatePairDayData(event);
@@ -345,27 +454,41 @@ export function handleBurn(event: Burn): void {
   }
 
   let burns = transaction.burns;
-  let burn = BurnEvent.load(burns[burns.length - 1]);
+  let burnId = burns[burns.length - 1] as string;
+  let burn = BurnEvent.load(burnId) || new BurnEvent(burnId);
 
-  let pair = Pair.load(event.address.toHex());
-  let athleteX = AthleteXFactory.load(FACTORY_ADDRESS);
+  let pair =
+    Pair.load(event.address.toHex()) || new Pair(event.address.toHex());
+  let athleteX =
+    AthleteXFactory.load(FACTORY_ADDRESS) ||
+    new AthleteXFactory(FACTORY_ADDRESS);
 
   //update token info
-  let token0 = Token.load(pair.token0);
-  let token1 = Token.load(pair.token1);
-  let token0Amount = convertTokenToDecimal(event.params.amount0, token0.decimals);
-  let token1Amount = convertTokenToDecimal(event.params.amount1, token1.decimals);
+  let token0 = Token.load(pair.token0) || new Token(pair.token0);
+  let token1 = Token.load(pair.token1) || new Token(pair.token1);
+  let token0Amount = convertTokenToDecimal(
+    event.params.amount0,
+    token0.decimals
+  );
+  let token1Amount = convertTokenToDecimal(
+    event.params.amount1,
+    token1.decimals
+  );
 
   // update txn counts
   token0.totalTransactions = token0.totalTransactions.plus(ONE_BI);
   token1.totalTransactions = token1.totalTransactions.plus(ONE_BI);
 
   // get new amounts of USD and MATIC for tracking
-  let bundle = Bundle.load("1");
-  let amountTotalUSD = token1.derivedMATIC
-    .times(token1Amount)
-    .plus(token0.derivedMATIC.times(token0Amount))
-    .times(bundle.maticPrice);
+  let bundle = Bundle.load("1") || new Bundle("1");
+  let amountTotalUSD =
+    token1.derivedMATIC &&
+    token1.derivedMATIC
+      .times(token1Amount)
+      .plus(
+        token0.derivedMATIC ? token0.derivedMATIC.times(token0Amount) : ZERO_BD
+      )
+      .times(bundle.maticPrice);
 
   // update txn counts
   athleteX.totalTransactions = athleteX.totalTransactions.plus(ONE_BI);
@@ -387,7 +510,10 @@ export function handleBurn(event: Burn): void {
   burn.save();
 
   // update the LP position
-  let liquidityPosition = createLiquidityPosition(event.address, burn.sender as Address);
+  let liquidityPosition = createLiquidityPosition(
+    event.address,
+    burn.sender as Address
+  );
   createLiquiditySnapshot(liquidityPosition, event);
 
   updatePairDayData(event);
@@ -398,26 +524,45 @@ export function handleBurn(event: Burn): void {
 }
 
 export function handleSwap(event: Swap): void {
-  let pair = Pair.load(event.address.toHex());
-  let token0 = Token.load(pair.token0);
-  let token1 = Token.load(pair.token1);
-  let amount0In = convertTokenToDecimal(event.params.amount0In, token0.decimals);
-  let amount1In = convertTokenToDecimal(event.params.amount1In, token1.decimals);
-  let amount0Out = convertTokenToDecimal(event.params.amount0Out, token0.decimals);
-  let amount1Out = convertTokenToDecimal(event.params.amount1Out, token1.decimals);
+  let pair =
+    Pair.load(event.address.toHex()) || new Pair(event.address.toHex());
+  let token0 = Token.load(pair.token0) || new Token(pair.token0);
+  let token1 = Token.load(pair.token1) || new Token(pair.token1);
+  let amount0In = convertTokenToDecimal(
+    event.params.amount0In,
+    token0.decimals
+  );
+  let amount1In = convertTokenToDecimal(
+    event.params.amount1In,
+    token1.decimals
+  );
+  let amount0Out = convertTokenToDecimal(
+    event.params.amount0Out,
+    token0.decimals
+  );
+  let amount1Out = convertTokenToDecimal(
+    event.params.amount1Out,
+    token1.decimals
+  );
 
   // totals for volume updates
   let amount0Total = amount0Out.plus(amount0In);
   let amount1Total = amount1Out.plus(amount1In);
 
   // MATIC/USD prices
-  let bundle = Bundle.load("1");
+  let bundle = Bundle.load("1") || new Bundle("1");
 
   // get total amounts of derived USD and MATIC for tracking
   let derivedAmountMATIC = token1.derivedMATIC
-    .times(amount1Total)
-    .plus(token0.derivedMATIC.times(amount0Total))
-    .div(BigDecimal.fromString("2"));
+    ? token1.derivedMATIC
+        .times(amount1Total)
+        .plus(
+          token0.derivedMATIC
+            ? token0.derivedMATIC.times(amount0Total)
+            : ZERO_BD
+        )
+        .div(BigDecimal.fromString("2"))
+    : ZERO_BD;
   let derivedAmountUSD = derivedAmountMATIC.times(bundle.maticPrice);
 
   // only accounts for volume through white listed tokens
@@ -459,10 +604,14 @@ export function handleSwap(event: Swap): void {
   pair.save();
 
   // update global values, only used tracked amounts for volume
-  let athleteX = AthleteXFactory.load(FACTORY_ADDRESS);
+  let athleteX =
+    AthleteXFactory.load(FACTORY_ADDRESS) ||
+    new AthleteXFactory(FACTORY_ADDRESS);
   athleteX.totalVolumeUSD = athleteX.totalVolumeUSD.plus(trackedAmountUSD);
-  athleteX.totalVolumeMATIC = athleteX.totalVolumeMATIC.plus(trackedAmountMATIC);
-  athleteX.untrackedVolumeUSD = athleteX.untrackedVolumeUSD.plus(derivedAmountUSD);
+  athleteX.totalVolumeMATIC =
+    athleteX.totalVolumeMATIC.plus(trackedAmountMATIC);
+  athleteX.untrackedVolumeUSD =
+    athleteX.untrackedVolumeUSD.plus(derivedAmountUSD);
   athleteX.totalTransactions = athleteX.totalTransactions.plus(ONE_BI);
 
   // save entities
@@ -481,7 +630,12 @@ export function handleSwap(event: Swap): void {
     transaction.burns = [];
   }
   let swaps = transaction.swaps;
-  let swap = new SwapEvent(event.transaction.hash.toHex().concat("-").concat(BigInt.fromI32(swaps.length).toString()));
+  let swap = new SwapEvent(
+    event.transaction.hash
+      .toHex()
+      .concat("-")
+      .concat(BigInt.fromI32(swaps.length).toString())
+  );
 
   // update swap event
   swap.transaction = transaction.id;
@@ -497,7 +651,8 @@ export function handleSwap(event: Swap): void {
   swap.from = event.transaction.from;
   swap.logIndex = event.logIndex;
   // use the tracked amount if we have it
-  swap.amountUSD = trackedAmountUSD === ZERO_BD ? derivedAmountUSD : trackedAmountUSD;
+  swap.amountUSD =
+    trackedAmountUSD === ZERO_BD ? derivedAmountUSD : trackedAmountUSD;
   swap.save();
 
   // update the transaction
@@ -516,40 +671,55 @@ export function handleSwap(event: Swap): void {
   let token1DayData = updateTokenDayData(token1 as Token, event);
 
   // swap specific updating
-  athleteXDayData.dailyVolumeUSD = athleteXDayData.dailyVolumeUSD.plus(trackedAmountUSD);
-  athleteXDayData.dailyVolumeMATIC = athleteXDayData.dailyVolumeMATIC.plus(trackedAmountMATIC);
-  athleteXDayData.dailyVolumeUntracked = athleteXDayData.dailyVolumeUntracked.plus(derivedAmountUSD);
+  athleteXDayData.dailyVolumeUSD =
+    athleteXDayData.dailyVolumeUSD.plus(trackedAmountUSD);
+  athleteXDayData.dailyVolumeMATIC =
+    athleteXDayData.dailyVolumeMATIC.plus(trackedAmountMATIC);
+  athleteXDayData.dailyVolumeUntracked =
+    athleteXDayData.dailyVolumeUntracked.plus(derivedAmountUSD);
   athleteXDayData.save();
 
   // swap specific updating for pair
-  pairDayData.dailyVolumeToken0 = pairDayData.dailyVolumeToken0.plus(amount0Total);
-  pairDayData.dailyVolumeToken1 = pairDayData.dailyVolumeToken1.plus(amount1Total);
-  pairDayData.dailyVolumeUSD = pairDayData.dailyVolumeUSD.plus(trackedAmountUSD);
+  pairDayData.dailyVolumeToken0 =
+    pairDayData.dailyVolumeToken0.plus(amount0Total);
+  pairDayData.dailyVolumeToken1 =
+    pairDayData.dailyVolumeToken1.plus(amount1Total);
+  pairDayData.dailyVolumeUSD =
+    pairDayData.dailyVolumeUSD.plus(trackedAmountUSD);
   pairDayData.save();
 
   // update hourly pair data
-  pairHourData.hourlyVolumeToken0 = pairHourData.hourlyVolumeToken0.plus(amount0Total);
-  pairHourData.hourlyVolumeToken1 = pairHourData.hourlyVolumeToken1.plus(amount1Total);
-  pairHourData.hourlyVolumeUSD = pairHourData.hourlyVolumeUSD.plus(trackedAmountUSD);
+  pairHourData.hourlyVolumeToken0 =
+    pairHourData.hourlyVolumeToken0.plus(amount0Total);
+  pairHourData.hourlyVolumeToken1 =
+    pairHourData.hourlyVolumeToken1.plus(amount1Total);
+  pairHourData.hourlyVolumeUSD =
+    pairHourData.hourlyVolumeUSD.plus(trackedAmountUSD);
   pairHourData.save();
 
   // swap specific updating for token0
-  token0DayData.dailyVolumeToken = token0DayData.dailyVolumeToken.plus(amount0Total);
+  token0DayData.dailyVolumeToken =
+    token0DayData.dailyVolumeToken.plus(amount0Total);
   token0DayData.dailyVolumeMATIC = token0DayData.dailyVolumeMATIC.plus(
     amount0Total.times(token0.derivedMATIC as BigDecimal)
   );
   token0DayData.dailyVolumeUSD = token0DayData.dailyVolumeUSD.plus(
-    amount0Total.times(token0.derivedMATIC as BigDecimal).times(bundle.maticPrice)
+    amount0Total
+      .times(token0.derivedMATIC as BigDecimal)
+      .times(bundle.maticPrice)
   );
   token0DayData.save();
 
   // swap specific updating
-  token1DayData.dailyVolumeToken = token1DayData.dailyVolumeToken.plus(amount1Total);
+  token1DayData.dailyVolumeToken =
+    token1DayData.dailyVolumeToken.plus(amount1Total);
   token1DayData.dailyVolumeMATIC = token1DayData.dailyVolumeMATIC.plus(
     amount1Total.times(token1.derivedMATIC as BigDecimal)
   );
   token1DayData.dailyVolumeUSD = token1DayData.dailyVolumeUSD.plus(
-    amount1Total.times(token1.derivedMATIC as BigDecimal).times(bundle.maticPrice)
+    amount1Total
+      .times(token1.derivedMATIC as BigDecimal)
+      .times(bundle.maticPrice)
   );
   token1DayData.save();
 }

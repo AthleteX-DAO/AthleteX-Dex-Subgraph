@@ -6,15 +6,28 @@
   "author": "Isaac Frank",
   "license": "UNLICENSED",
   "scripts": {
-    "codegen": "graph codegen subgraph.yaml",
-    "build": "graph build subgraph.yaml",
+    "prepare:matic": "mustache config/matic.json subgraph.template.yaml > subgraph.yaml && mustache config/matic.json src/utils/constants.template.ts > src/utils/constants.ts",
+    "codegen": "npm run prepare:matic && graph codegen",
+    "build": "npm run codegen && graph build",
     "deploy": "graph deploy --product hosted-service --node https://api.thegraph.com/deploy/ --ipfs https://api.thegraph.com/ipfs/ nyamwaya/athletex-dex-subgraph-mainnet subgraph.yaml --access-token",
+
+    "prepare:sx": "mustache config/sx.json subgraph.template.yaml > subgraph.yaml && mustache config/sx.json src/utils/constants.template.ts > src/utils/constants.ts",
+    "codegen:sx": "npm run prepare:sx && graph codegen",
+    "build:sx": "npm run codegen:sx && graph build",
+    "create:sx": "graph create --node https://graph.sx.technology/ sportstoken/athletex-dex --access-token",
+    "deploy:sx": "graph deploy --product hosted-service --node https://graph.sx.technology/ --ipfs https://ipfs.sx.technology/ sportstoken/athletex-dex --access-token",
+
+    "prepare:toronto": "mustache config/toronto.json subgraph.template.yaml > subgraph.yaml && mustache config/toronto.json src/utils/constants.template.ts > src/utils/constants.ts",
+    "codegen:toronto": "npm run prepare:toronto && graph codegen",
+    "build:toronto": "npm run codegen:toronto && graph build",
+    "create:toronto": "graph create --node https://graph.toronto.sx.technology/ sportstoken/athletex-dex --access-token",
+    "deploy:toronto": "graph deploy --product hosted-service --node https://graph.toronto.sx.technology/ --ipfs https://ipfs.toronto.sx.technology/  sportstoken/athletex-dex --access-token",
     "create-local": "graph create --node http://localhost:8020/ SportsToken/AthleteX-Dex-Subgraph",
     "remove-local": "graph remove --node http://localhost:8020/ SportsToken/AthleteX-Dex-Subgraph",
     "deploy-local": "graph deploy --node http://localhost:8020/ --ipfs http://localhost:5001 SportsToken/AthleteX-Dex-Subgraph",
-    "format:check": "prettier --check '*/**/*.{js,ts}'",
-    "format:write": "prettier --write '*/**/*.{js,ts}'",
-    "lint": "eslint '*/**/*.{js,ts}'",
+    "format:check": "prettier --check \"*/**/*.{js,ts}\"",
+    "format:write": "prettier --write \"*/**/*.{js,ts}\"",
+    "lint": "eslint \"*/**/*.{js,ts}\"",
     "prepare": "husky install"
   },
   "devDependencies": {
@@ -27,6 +40,7 @@
     "eslint": "^7.32.0",
     "eslint-config-prettier": "^8.3.0",
     "husky": "^7.0.0",
+    "mustache": "^4.2.0",
     "prettier": "^2.4.0",
     "typescript": "^4.3.5"
   }

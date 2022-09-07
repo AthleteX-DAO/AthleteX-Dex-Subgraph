@@ -1,11 +1,21 @@
 /* eslint-disable prefer-const */
-import { PairHourData } from "../generated/schema";
+import { PairHourData } from "../../generated/schema";
 import { BigInt, BigDecimal, ethereum } from "@graphprotocol/graph-ts";
-import { Pair, Bundle, Token, AthleteXFactory, AthleteXDayData, PairDayData, TokenDayData } from "../generated/schema";
-import { ONE_BI, ZERO_BD, ZERO_BI, FACTORY_ADDRESS } from "./utils";
+import {
+  Pair,
+  Bundle,
+  Token,
+  AthleteXFactory,
+  AthleteXDayData,
+  PairDayData,
+  TokenDayData,
+} from "../../generated/schema";
+import { ONE_BI, ZERO_BD, ZERO_BI, FACTORY_ADDRESS } from "../utils/constants";
 
 export function updateAthleteXDayData(event: ethereum.Event): AthleteXDayData {
-  let athleteX = AthleteXFactory.load(FACTORY_ADDRESS);
+  let athleteX =
+    AthleteXFactory.load(FACTORY_ADDRESS) ||
+    new AthleteXFactory(FACTORY_ADDRESS);
   let timestamp = event.block.timestamp.toI32();
   let dayID = timestamp / 86400;
   let dayStartTimestamp = dayID * 86400;
@@ -32,8 +42,12 @@ export function updatePairDayData(event: ethereum.Event): PairDayData {
   let timestamp = event.block.timestamp.toI32();
   let dayID = timestamp / 86400;
   let dayStartTimestamp = dayID * 86400;
-  let dayPairID = event.address.toHex().concat("-").concat(BigInt.fromI32(dayID).toString());
-  let pair = Pair.load(event.address.toHex());
+  let dayPairID = event.address
+    .toHex()
+    .concat("-")
+    .concat(BigInt.fromI32(dayID).toString());
+  let pair =
+    Pair.load(event.address.toHex()) || new Pair(event.address.toHex());
   let pairDayData = PairDayData.load(dayPairID);
   if (pairDayData === null) {
     pairDayData = new PairDayData(dayPairID);
@@ -60,8 +74,12 @@ export function updatePairHourData(event: ethereum.Event): PairHourData {
   let timestamp = event.block.timestamp.toI32();
   let hourIndex = timestamp / 3600;
   let hourStartUnix = hourIndex * 3600;
-  let hourPairID = event.address.toHex().concat("-").concat(BigInt.fromI32(hourIndex).toString());
-  let pair = Pair.load(event.address.toHex());
+  let hourPairID = event.address
+    .toHex()
+    .concat("-")
+    .concat(BigInt.fromI32(hourIndex).toString());
+  let pair =
+    Pair.load(event.address.toHex()) || new Pair(event.address.toHex());
   let pairHourData = PairHourData.load(hourPairID);
   if (pairHourData === null) {
     pairHourData = new PairHourData(hourPairID);
@@ -82,29 +100,43 @@ export function updatePairHourData(event: ethereum.Event): PairHourData {
   return pairHourData as PairHourData;
 }
 
-export function updateTokenDayData(token: Token, event: ethereum.Event): TokenDayData {
-  let bundle = Bundle.load("1");
+export function updateTokenDayData(
+  token: Token,
+  event: ethereum.Event
+): TokenDayData {
+  let bundle = Bundle.load("1") || new Bundle("1");
   let timestamp = event.block.timestamp.toI32();
   let dayID = timestamp / 86400;
   let dayStartTimestamp = dayID * 86400;
-  let tokenDayID = token.id.toString().concat("-").concat(BigInt.fromI32(dayID).toString());
+  let tokenDayID = token.id
+    .toString()
+    .concat("-")
+    .concat(BigInt.fromI32(dayID).toString());
 
   let tokenDayData = TokenDayData.load(tokenDayID);
   if (tokenDayData === null) {
     tokenDayData = new TokenDayData(tokenDayID);
     tokenDayData.date = dayStartTimestamp;
     tokenDayData.token = token.id;
-    tokenDayData.priceUSD = token.derivedMATIC.times(bundle.maticPrice);
+    tokenDayData.priceUSD = token.derivedMATIC
+      ? token.derivedMATIC.times(bundle.maticPrice)
+      : ZERO_BD;
     tokenDayData.dailyVolumeToken = ZERO_BD;
     tokenDayData.dailyVolumeMATIC = ZERO_BD;
     tokenDayData.dailyVolumeUSD = ZERO_BD;
     tokenDayData.dailyTxns = ZERO_BI;
     tokenDayData.totalLiquidityUSD = ZERO_BD;
   }
-  tokenDayData.priceUSD = token.derivedMATIC.times(bundle.maticPrice);
+  tokenDayData.priceUSD = token.derivedMATIC
+    ? token.derivedMATIC.times(bundle.maticPrice)
+    : ZERO_BD;
   tokenDayData.totalLiquidityToken = token.totalLiquidity;
-  tokenDayData.totalLiquidityMATIC = token.totalLiquidity.times(token.derivedMATIC as BigDecimal);
-  tokenDayData.totalLiquidityUSD = tokenDayData.totalLiquidityMATIC.times(bundle.maticPrice);
+  tokenDayData.totalLiquidityMATIC = token.totalLiquidity.times(
+    token.derivedMATIC as BigDecimal
+  );
+  tokenDayData.totalLiquidityUSD = tokenDayData.totalLiquidityMATIC.times(
+    bundle.maticPrice
+  );
   tokenDayData.dailyTxns = tokenDayData.dailyTxns.plus(ONE_BI);
   tokenDayData.save();
 

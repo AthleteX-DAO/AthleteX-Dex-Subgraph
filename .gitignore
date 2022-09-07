@@ -116,3 +116,7 @@ dist
 # GraphQL directories
 build/
 generated/
+
+# Generated subgraph.yaml from subgraph.template.yaml
+subgraph.yaml
+src/utils/constants.ts

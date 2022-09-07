@@ -1,23 +1,28 @@
 /* eslint-disable prefer-const */
 import { BigDecimal, Address } from "@graphprotocol/graph-ts/index";
-import { Pair, Token, Bundle } from "../generated/schema";
-import { ZERO_BD, factoryContract, ADDRESS_ZERO, ONE_BD } from "./utils";
-
-let WMATIC_ADDRESS = "0x0d500b1d8e8ef31e21c99d1db9a6444d3adf1270"; // WMATIC
-let BUSD_WMATIC_PAIR = ADDRESS_ZERO;
-let USDT_WMATIC_PAIR = ADDRESS_ZERO;
+import { Pair, Token, Bundle } from "../../generated/schema";
+import { factoryContract } from "./helper";
+import {
+  ZERO_BD,
+  ONE_BD,
+  ADDRESS_ZERO,
+  WRAPPED_GAS_TOKEN_ADDRESS,
+  AX_ADDRESS,
+} from "./constants";
 
 export function getMaticPriceInUSD(): BigDecimal {
   // fetch eth prices for each stablecoin
-  let usdtPair = Pair.load(USDT_WMATIC_PAIR); // usdt is token0
-  let busdPair = Pair.load(BUSD_WMATIC_PAIR); // busd is token1
+  let usdtPair = Pair.load(ADDRESS_ZERO); // usdt is token0
+  let busdPair = Pair.load(ADDRESS_ZERO); // busd is token1
 
   if (busdPair !== null && usdtPair !== null) {
     let totalLiquidityMATIC = busdPair.reserve0.plus(usdtPair.reserve1);
     if (totalLiquidityMATIC.notEqual(ZERO_BD)) {
       let busdWeight = busdPair.reserve0.div(totalLiquidityMATIC);
       let usdtWeight = usdtPair.reserve1.div(totalLiquidityMATIC);
-      return busdPair.token1Price.times(busdWeight).plus(usdtPair.token0Price.times(usdtWeight));
+      return busdPair.token1Price
+        .times(busdWeight)
+        .plus(usdtPair.token0Price.times(usdtWeight));
     } else {
       return ZERO_BD;
     }
@@ -31,7 +36,7 @@ export function getMaticPriceInUSD(): BigDecimal {
 }
 
 // token where amounts should contribute to tracked volume and liquidity
-let WHITELIST: string[] = [WMATIC_ADDRESS, "0x5617604ba0a30e0ff1d2163ab94e50d8b6d0b0df"];
+let WHITELIST: string[] = [WRAPPED_GAS_TOKEN_ADDRESS, AX_ADDRESS];
 
 // minimum liquidity for price to get tracked
 let MINIMUM_LIQUIDITY_THRESHOLD_MATIC = BigDecimal.fromString("0.0001");
@@ -41,20 +46,30 @@ let MINIMUM_LIQUIDITY_THRESHOLD_MATIC = BigDecimal.fromString("0.0001");
  * @todo update to be derived MATIC (add stablecoin estimates)
  **/
 export function findMaticPerToken(token: Token): BigDecimal {
-  if (token.id == WMATIC_ADDRESS) {
+  if (token.id == WRAPPED_GAS_TOKEN_ADDRESS) {
     return ONE_BD;
   }
   // loop through whitelist and check if paired with any
   for (let i = 0; i < WHITELIST.length; ++i) {
-    let pairAddress = factoryContract.getPair(Address.fromString(token.id), Address.fromString(WHITELIST[i]));
+    let pairAddress = factoryContract.getPair(
+      Address.fromString(token.id),
+      Address.fromString(WHITELIST[i])
+    );
     if (pairAddress.toHex() != ADDRESS_ZERO) {
-      let pair = Pair.load(pairAddress.toHex());
-      if (pair.token0 == token.id && pair.reserveMATIC.gt(MINIMUM_LIQUIDITY_THRESHOLD_MATIC)) {
-        let token1 = Token.load(pair.token1);
+      let pair =
+        Pair.load(pairAddress.toHex()) || new Pair(pairAddress.toHex());
+      if (
+        pair.token0 == token.id &&
+        pair.reserveMATIC.gt(MINIMUM_LIQUIDITY_THRESHOLD_MATIC)
+      ) {
+        let token1 = Token.load(pair.token1) || new Token(pair.token1);
         return pair.token1Price.times(token1.derivedMATIC as BigDecimal); // return token1 per our token * MATIC per token 1
       }
-      if (pair.token1 == token.id && pair.reserveMATIC.gt(MINIMUM_LIQUIDITY_THRESHOLD_MATIC)) {
-        let token0 = Token.load(pair.token0);
+      if (
+        pair.token1 == token.id &&
+        pair.reserveMATIC.gt(MINIMUM_LIQUIDITY_THRESHOLD_MATIC)
+      ) {
+        let token0 = Token.load(pair.token0) || new Token(pair.token0);
         return pair.token0Price.times(token0.derivedMATIC as BigDecimal); // return token0 per our token * MATIC per token 0
       }
     }
@@ -75,12 +90,19 @@ export function getTrackedVolumeUSD(
   tokenAmount1: BigDecimal,
   token1: Token
 ): BigDecimal {
-  let price0 = token0.derivedMATIC.times(bundle.maticPrice);
-  let price1 = token1.derivedMATIC.times(bundle.maticPrice);
+  let price0 = token0.derivedMATIC
+    ? token0.derivedMATIC.times(bundle.maticPrice)
+    : ZERO_BD;
+  let price1 = token1.derivedMATIC
+    ? token1.derivedMATIC.times(bundle.maticPrice)
+    : ZERO_BD;
 
   // both are whitelist tokens, take average of both amounts
   if (WHITELIST.includes(token0.id) && WHITELIST.includes(token1.id)) {
-    return tokenAmount0.times(price0).plus(tokenAmount1.times(price1)).div(BigDecimal.fromString("2"));
+    return tokenAmount0
+      .times(price0)
+      .plus(tokenAmount1.times(price1))
+      .div(BigDecimal.fromString("2"));
   }
 
   // take full value of the whitelisted token amount
@@ -110,8 +132,12 @@ export function getTrackedLiquidityUSD(
   tokenAmount1: BigDecimal,
   token1: Token
 ): BigDecimal {
-  let price0 = token0.derivedMATIC.times(bundle.maticPrice);
-  let price1 = token1.derivedMATIC.times(bundle.maticPrice);
+  let price0 = token0.derivedMATIC
+    ? token0.derivedMATIC.times(bundle.maticPrice)
+    : ZERO_BD;
+  let price1 = token1.derivedMATIC
+    ? token1.derivedMATIC.times(bundle.maticPrice)
+    : ZERO_BD;
 
   // both are whitelist tokens, take average of both amounts
   if (WHITELIST.includes(token0.id) && WHITELIST.includes(token1.id)) {

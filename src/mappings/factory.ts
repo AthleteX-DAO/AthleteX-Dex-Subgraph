@@ -1,20 +1,18 @@
 /* eslint-disable prefer-const */
-import { AthleteXFactory, Pair, Token, Bundle } from "../generated/schema";
-import { Pair as PairTemplate } from "../generated/templates";
-import { PairCreated } from "../generated/Factory/Factory";
+import { AthleteXFactory, Pair, Token, Bundle } from "../../generated/schema";
+import { Pair as PairTemplate } from "../../generated/templates";
+import { PairCreated } from "../../generated/Factory/Factory";
 import {
-  FACTORY_ADDRESS,
-  ZERO_BD,
-  ZERO_BI,
-  ONE_BI,
   fetchTokenSymbol,
   fetchTokenName,
   fetchTokenDecimals,
   fetchTokenTotalSupply,
-} from "./utils";
+} from "../utils/helper";
+import { FACTORY_ADDRESS, ZERO_BD, ZERO_BI, ONE_BI } from "../utils/constants";
 
 export function handlePairCreated(event: PairCreated): void {
-  let factory = AthleteXFactory.load(FACTORY_ADDRESS);
+  let factory = AthleteXFactory.load(event.address.toHexString());
+
   if (factory === null) {
     factory = new AthleteXFactory(FACTORY_ADDRESS);
     factory.totalPairs = ZERO_BI;
