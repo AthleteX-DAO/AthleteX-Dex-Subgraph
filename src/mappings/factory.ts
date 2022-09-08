@@ -11,7 +11,7 @@ import {
 import { FACTORY_ADDRESS, ZERO_BD, ZERO_BI, ONE_BI } from "../utils/constants";
 
 export function handlePairCreated(event: PairCreated): void {
-  let factory = AthleteXFactory.load(event.address.toHexString());
+  let factory = AthleteXFactory.load(FACTORY_ADDRESS);
 
   if (factory === null) {
     factory = new AthleteXFactory(FACTORY_ADDRESS);
@@ -72,7 +72,7 @@ export function handlePairCreated(event: PairCreated): void {
     token1.save();
   }
 
-  let pair = new Pair(event.params.pair.toHex()) as Pair;
+  let pair = new Pair(event.params.pair.toHex());
   pair.token0 = token0.id;
   pair.token1 = token1.id;
   pair.name = token0.symbol.concat("-").concat(token1.symbol);

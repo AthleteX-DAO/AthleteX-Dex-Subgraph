@@ -1,5 +1,11 @@
 /* eslint-disable prefer-const */
-import { BigInt, BigDecimal, store, Address } from "@graphprotocol/graph-ts";
+import {
+  BigInt,
+  BigDecimal,
+  store,
+  Address,
+  log,
+} from "@graphprotocol/graph-ts";
 import {
   Mint,
   Burn,
@@ -374,8 +380,8 @@ export function handleSync(event: Sync): void {
 
 export function handleMint(event: Mint): void {
   let tx = Transaction.load(event.transaction.hash.toHex());
-  if (!tx) {
-    tx = new Transaction(event.transaction.hash.toHex());
+  if (tx === null) {
+    return;
   }
 
   let mints = tx.mints;
