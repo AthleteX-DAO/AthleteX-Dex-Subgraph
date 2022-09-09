@@ -146,7 +146,12 @@ export function handleTransfer(event: Transfer): void {
       transaction.save();
     } else {
       // if this logical mint included a fee mint, account for this
-      let mintId = mints[mints.length - 1] as string;
+      let mintId = mints[mints.length - 1];
+      if (mintId === null) {
+        log.error("Invalid mint id", []);
+        return;
+      }
+
       let mint = MintEvent.load(mintId);
       if (!mint) {
         log.error("Mint at {} not found", [mintId]);
@@ -198,14 +203,20 @@ export function handleTransfer(event: Transfer): void {
 
     // this is a new instance of a logical burn
     let burns = transaction.burns;
-    let burnId = burns[burns.length - 1] as string;
+    let burnId = burns[burns.length - 1];
     let burn: BurnEvent;
     if (burns.length > 0) {
+      if (burnId === null) {
+        log.error("Invalid burn id", []);
+        return;
+      }
+
       let currentBurn = BurnEvent.load(burnId);
       if (!currentBurn) {
         log.error("Burn at {} not found", [burnId]);
         return;
       }
+
       if (currentBurn.needsComplete) {
         burn = currentBurn as BurnEvent;
       } else {
@@ -238,8 +249,13 @@ export function handleTransfer(event: Transfer): void {
     }
 
     // if this logical burn included a fee mint, account for this
-    let mintId = mints[mints.length - 1] as string;
+    let mintId = mints[mints.length - 1];
     if (mints.length !== 0 && !isCompleteMint(mintId)) {
+      if (mintId === null) {
+        log.error("Invalid mintId found", []);
+        return;
+      }
+
       let mint = MintEvent.load(mintId);
       if (!mint) {
         log.error("Mint at {} not found", [mintId]);
@@ -259,7 +275,7 @@ export function handleTransfer(event: Transfer): void {
     }
     burn.save();
     // if accessing last one, replace it
-    if (burn.needsComplete) {
+    if (burn.needsComplete && burns.length > 0) {
       // TODO: Consider using .slice(0, -1).concat() to protect against
       // unintended side effects for other code paths.
       burns[burns.length - 1] = burn.id;
