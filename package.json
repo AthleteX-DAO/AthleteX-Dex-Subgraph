@@ -6,20 +6,15 @@
   "author": "Isaac Frank",
   "license": "UNLICENSED",
   "scripts": {
-    "prepare:matic": "mustache config/matic.json subgraph.template.yaml > subgraph.yaml && mustache config/matic.json src/utils/constants.template.ts > src/utils/constants.ts",
     "codegen": "graph codegen",
     "build": "graph build",
     "deploy": "graph deploy --product hosted-service --node https://api.thegraph.com/deploy/ --ipfs https://api.thegraph.com/ipfs/ devofficer/athletex-polygon-mainnet subgraph.yaml",
-
+    "prepare:matic": "mustache config/matic.json subgraph.template.yaml > subgraph.yaml && mustache config/matic.json src/utils/constants.template.ts > src/utils/constants.ts",
+    "prepare:mumbai": "mustache config/mumbai.json subgraph.template.yaml > subgraph.yaml && mustache config/mumbai.json src/utils/constants.template.ts > src/utils/constants.ts",
     "prepare:sx": "mustache config/sx.json subgraph.template.yaml > subgraph.yaml && mustache config/sx.json src/utils/constants.template.ts > src/utils/constants.ts",
-    "codegen:sx": "npm run prepare:sx && graph codegen",
-    "build:sx": "npm run codegen:sx && graph build",
+    "prepare:toronto": "mustache config/toronto.json subgraph.template.yaml > subgraph.yaml && mustache config/toronto.json src/utils/constants.template.ts > src/utils/constants.ts",
     "create:sx": "graph create --node https://graph.sx.technology/ sportstoken/athletex-dex --access-token",
     "deploy:sx": "graph deploy --product hosted-service --node https://graph.sx.technology/ --ipfs https://ipfs.sx.technology/ sportstoken/athletex-dex --access-token partner-ax-suW5OYhvpE",
-
-    "prepare:toronto": "mustache config/toronto.json subgraph.template.yaml > subgraph.yaml && mustache config/toronto.json src/utils/constants.template.ts > src/utils/constants.ts",
-    "codegen:toronto": "npm run prepare:toronto && graph codegen",
-    "build:toronto": "npm run codegen:toronto && graph build",
     "create:toronto": "graph create --node https://graph.toronto.sx.technology/ sportstoken/athletex-dex --access-token",
     "deploy:toronto": "graph deploy --product hosted-service --node https://graph.toronto.sx.technology/ --ipfs https://ipfs.toronto.sx.technology/  sportstoken/athletex-dex --access-token",
     "create-local": "graph create --node http://localhost:8020/ SportsToken/AthleteX-Dex-Subgraph",

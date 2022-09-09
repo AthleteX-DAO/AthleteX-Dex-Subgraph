@@ -1,5 +1,11 @@
 /* eslint-disable prefer-const */
-import { BigInt, BigDecimal, store, Address } from "@graphprotocol/graph-ts";
+import {
+  BigInt,
+  BigDecimal,
+  store,
+  Address,
+  log,
+} from "@graphprotocol/graph-ts";
 import {
   Mint,
   Burn,
@@ -49,8 +55,19 @@ import {
 
 let MINING_POOLS: string[] = [];
 
-function isCompleteMint(mintId: string): boolean {
-  return MintEvent.load(mintId).sender !== null; // sufficient checks
+function isCompleteMint(mintId: string | null): boolean {
+  if (!mintId) {
+    log.error("Invalid mint id found", []);
+    return false;
+  }
+
+  let mint = MintEvent.load(mintId);
+  if (!mint) {
+    log.error("MintEvent at {} not found", [mintId]);
+    return false;
+  }
+
+  return mint.sender !== null; // sufficient checks
 }
 
 export function handleTransfer(event: Transfer): void {
@@ -82,7 +99,10 @@ export function handleTransfer(event: Transfer): void {
 
   // get pair and load contract
   let pair = Pair.load(event.address.toHex());
-
+  if (!pair) {
+    log.error("Pair at {} not found", [event.address.toHex()]);
+    return;
+  }
   // liquidity token amount being transferred
   let value = convertTokenToDecimal(event.params.value, BI_18);
 
@@ -126,7 +146,12 @@ export function handleTransfer(event: Transfer): void {
       transaction.save();
     } else {
       // if this logical mint included a fee mint, account for this
-      let mint = MintEvent.load(mints[mints.length - 1]);
+      let mintId = mints[mints.length - 1] as string;
+      let mint = MintEvent.load(mintId);
+      if (!mint) {
+        log.error("Mint at {} not found", [mintId]);
+        return;
+      }
       mint.feeTo = mint.to;
       mint.to = to;
       mint.feeLiquidity = mint.liquidity;
@@ -173,9 +198,14 @@ export function handleTransfer(event: Transfer): void {
 
     // this is a new instance of a logical burn
     let burns = transaction.burns;
+    let burnId = burns[burns.length - 1] as string;
     let burn: BurnEvent;
     if (burns.length > 0) {
-      let currentBurn = BurnEvent.load(burns[burns.length - 1]);
+      let currentBurn = BurnEvent.load(burnId);
+      if (!currentBurn) {
+        log.error("Burn at {} not found", [burnId]);
+        return;
+      }
       if (currentBurn.needsComplete) {
         burn = currentBurn as BurnEvent;
       } else {
@@ -208,12 +238,17 @@ export function handleTransfer(event: Transfer): void {
     }
 
     // if this logical burn included a fee mint, account for this
-    if (mints.length !== 0 && !isCompleteMint(mints[mints.length - 1])) {
-      let mint = MintEvent.load(mints[mints.length - 1]);
+    let mintId = mints[mints.length - 1] as string;
+    if (mints.length !== 0 && !isCompleteMint(mintId)) {
+      let mint = MintEvent.load(mintId);
+      if (!mint) {
+        log.error("Mint at {} not found", [mintId]);
+        return;
+      }
       burn.feeTo = mint.to;
       burn.feeLiquidity = mint.liquidity;
       // remove the logical mint
-      store.remove("Mint", mints[mints.length - 1]);
+      store.remove("Mint", mintId);
       // update the transaction
 
       // TODO: Consider using .slice().pop() to protect against unintended
@@ -267,10 +302,25 @@ export function handleTransfer(event: Transfer): void {
 
 export function handleSync(event: Sync): void {
   let pair = Pair.load(event.address.toHex());
+  if (!pair) {
+    log.error("Pair at {} not found", [event.address.toHex()]);
+    return;
+  }
   let token0 = Token.load(pair.token0);
+  if (!token0) {
+    log.error("Token at {} not found", [pair.token0]);
+    return;
+  }
   let token1 = Token.load(pair.token1);
+  if (!token1) {
+    log.error("Token at {} not found", [pair.token1]);
+    return;
+  }
   let athleteX = AthleteXFactory.load(FACTORY_ADDRESS);
-
+  if (!athleteX) {
+    log.error("AthleteXFactory at {} not found", [FACTORY_ADDRESS]);
+    return;
+  }
   // reset factory liquidity by subtracting only tracked liquidity
   athleteX.totalLiquidityMATIC = athleteX.totalLiquidityMATIC.minus(
     pair.trackedReserveMATIC as BigDecimal
@@ -291,6 +341,10 @@ export function handleSync(event: Sync): void {
   else pair.token1Price = ZERO_BD;
 
   let bundle = Bundle.load("1");
+  if (!bundle) {
+    log.error("Bundle at {} not found", ["1"]);
+    return;
+  }
   bundle.maticPrice = getMaticPriceInUSD();
   bundle.save();
 
@@ -346,14 +400,41 @@ export function handleSync(event: Sync): void {
 
 export function handleMint(event: Mint): void {
   let transaction = Transaction.load(event.transaction.hash.toHex());
+  if (!transaction) {
+    log.error("Transaction at {} not found", [event.transaction.hash.toHex()]);
+    return;
+  }
   let mints = transaction.mints;
-  let mint = MintEvent.load(mints[mints.length - 1]);
+  let mintId = mints[mints.length - 1] as string;
+  let mint = MintEvent.load(mintId);
+  if (!mint) {
+    log.error("Mint at {} not found", [mintId]);
+    return;
+  }
 
   let pair = Pair.load(event.address.toHex());
+  if (!pair) {
+    log.error("Pair at {} not found", [event.address.toHex()]);
+    return;
+  }
+
   let athleteX = AthleteXFactory.load(FACTORY_ADDRESS);
+  if (!athleteX) {
+    log.error("AthleteXFactory at {} not found", [FACTORY_ADDRESS]);
+    return;
+  }
 
   let token0 = Token.load(pair.token0);
+  if (!token0) {
+    log.error("Token at {} not found", [pair.token0]);
+    return;
+  }
+
   let token1 = Token.load(pair.token1);
+  if (!token1) {
+    log.error("Token at {} not found", [pair.token1]);
+    return;
+  }
 
   // update exchange info (except balances, sync will cover that)
   let token0Amount = convertTokenToDecimal(
@@ -371,10 +452,18 @@ export function handleMint(event: Mint): void {
 
   // get new amounts of USD and MATIC for tracking
   let bundle = Bundle.load("1");
-  let amountTotalUSD = token1.derivedMATIC
-    .times(token1Amount)
-    .plus(token0.derivedMATIC.times(token0Amount))
-    .times(bundle.maticPrice);
+  if (!bundle) {
+    log.error("Bundle at {} not found => core.ts:440", ["1"]);
+    return;
+  }
+
+  let amountTotalUSD = BigDecimal.fromString("0");
+  if (token0.derivedMATIC && token1.derivedMATIC) {
+    amountTotalUSD = token1.derivedMATIC
+      .times(token1Amount)
+      .plus(token0.derivedMATIC.times(token0Amount))
+      .times(bundle.maticPrice);
+  }
 
   // update txn counts
   pair.totalTransactions = pair.totalTransactions.plus(ONE_BI);
@@ -414,14 +503,38 @@ export function handleBurn(event: Burn): void {
   }
 
   let burns = transaction.burns;
-  let burn = BurnEvent.load(burns[burns.length - 1]);
+  let burnId = burns[burns.length - 1] as string;
+  let burn = BurnEvent.load(burnId);
+  if (!burn) {
+    log.error("Burn at {} not found", [burnId]);
+    return;
+  }
 
   let pair = Pair.load(event.address.toHex());
+  if (!pair) {
+    log.error("Pair at {} not found", [event.address.toHex()]);
+    return;
+  }
+
   let athleteX = AthleteXFactory.load(FACTORY_ADDRESS);
+  if (!athleteX) {
+    log.error("AthleteXFactory at {} not found", []);
+    return;
+  }
 
   //update token info
   let token0 = Token.load(pair.token0);
+  if (!token0) {
+    log.error("Token at {} not found", [pair.token0]);
+    return;
+  }
+
   let token1 = Token.load(pair.token1);
+  if (!token1) {
+    log.error("Token at {} not found", [pair.token1]);
+    return;
+  }
+
   let token0Amount = convertTokenToDecimal(
     event.params.amount0,
     token0.decimals
@@ -437,10 +550,18 @@ export function handleBurn(event: Burn): void {
 
   // get new amounts of USD and MATIC for tracking
   let bundle = Bundle.load("1");
-  let amountTotalUSD = token1.derivedMATIC
-    .times(token1Amount)
-    .plus(token0.derivedMATIC.times(token0Amount))
-    .times(bundle.maticPrice);
+  if (!bundle) {
+    log.error("Bundle at {} not found", ["1"]);
+    return;
+  }
+
+  let amountTotalUSD = BigDecimal.fromString("0");
+  if (token0.derivedMATIC && token1.derivedMATIC) {
+    amountTotalUSD = token1.derivedMATIC
+      .times(token1Amount)
+      .plus(token0.derivedMATIC.times(token0Amount))
+      .times(bundle.maticPrice);
+  }
 
   // update txn counts
   athleteX.totalTransactions = athleteX.totalTransactions.plus(ONE_BI);
@@ -477,8 +598,23 @@ export function handleBurn(event: Burn): void {
 
 export function handleSwap(event: Swap): void {
   let pair = Pair.load(event.address.toHex());
+  if (!pair) {
+    log.error("Pair at {} not found", [event.address.toHex()]);
+    return;
+  }
+
   let token0 = Token.load(pair.token0);
+  if (!token0) {
+    log.error("Token at {} not found", [pair.token0]);
+    return;
+  }
+
   let token1 = Token.load(pair.token1);
+  if (!token1) {
+    log.error("Token at {} not found", [pair.token1]);
+    return;
+  }
+
   let amount0In = convertTokenToDecimal(
     event.params.amount0In,
     token0.decimals
@@ -502,12 +638,20 @@ export function handleSwap(event: Swap): void {
 
   // MATIC/USD prices
   let bundle = Bundle.load("1");
+  if (!bundle) {
+    log.error("Bundle at {} not found", ["1"]);
+    return;
+  }
 
   // get total amounts of derived USD and MATIC for tracking
-  let derivedAmountMATIC = token1.derivedMATIC
-    .times(amount1Total)
-    .plus(token0.derivedMATIC.times(amount0Total))
-    .div(BigDecimal.fromString("2"));
+  let derivedAmountMATIC = BigDecimal.fromString("0");
+  if (token0.derivedMATIC && token1.derivedMATIC) {
+    derivedAmountMATIC = token1.derivedMATIC
+      .times(amount1Total)
+      .plus(token0.derivedMATIC.times(amount0Total))
+      .div(BigDecimal.fromString("2"));
+  }
+
   let derivedAmountUSD = derivedAmountMATIC.times(bundle.maticPrice);
 
   // only accounts for volume through white listed tokens
@@ -550,6 +694,11 @@ export function handleSwap(event: Swap): void {
 
   // update global values, only used tracked amounts for volume
   let athleteX = AthleteXFactory.load(FACTORY_ADDRESS);
+  if (!athleteX) {
+    log.error("AthleteXFactory at {}  not found", [FACTORY_ADDRESS]);
+    return;
+  }
+
   athleteX.totalVolumeUSD = athleteX.totalVolumeUSD.plus(trackedAmountUSD);
   athleteX.totalVolumeMATIC =
     athleteX.totalVolumeMATIC.plus(trackedAmountMATIC);

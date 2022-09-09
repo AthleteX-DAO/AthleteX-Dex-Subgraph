@@ -2,6 +2,8 @@
 	"network": "matic",
 	"ax_factory_address": "0x8720dccfcd5687afae5f0bfb56ff664e6d8b385b",
 	"ax_factory_start_block": 26822178,
+	"ax_router_address": "0xe78Bb28079B7a72C8d0e9f67c695E54B74556105",
+	"ax_router_start_block": 26822448,
 	"ax_token_address": "0x5617604BA0a30E0ff1d2163aB94E50d8b6D0B0Df",
 	"wrapped_gas_token_address": "0x0d500b1d8e8ef31e21c99d1db9a6444d3adf1270"
 }
