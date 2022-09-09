@@ -9,7 +9,7 @@
     "prepare:matic": "mustache config/matic.json subgraph.template.yaml > subgraph.yaml && mustache config/matic.json src/utils/constants.template.ts > src/utils/constants.ts",
     "codegen": "graph codegen",
     "build": "graph build",
-    "deploy": "graph deploy --product hosted-service --node https://api.thegraph.com/deploy/ --ipfs https://api.thegraph.com/ipfs/ nyamwaya/athletex-dex-subgraph-mainnet subgraph.yaml --access-token",
+    "deploy": "graph deploy --product hosted-service --node https://api.thegraph.com/deploy/ --ipfs https://api.thegraph.com/ipfs/ devofficer/athletex-polygon-mainnet subgraph.yaml",
 
     "prepare:sx": "mustache config/sx.json subgraph.template.yaml > subgraph.yaml && mustache config/sx.json src/utils/constants.template.ts > src/utils/constants.ts",
     "codegen:sx": "npm run prepare:sx && graph codegen",
