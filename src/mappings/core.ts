@@ -1,12 +1,12 @@
 /* eslint-disable prefer-const */
-import { BigInt, BigDecimal, store, Address } from '@graphprotocol/graph-ts';
+import { BigInt, BigDecimal, store, Address } from "@graphprotocol/graph-ts";
 import {
   Mint,
   Burn,
   Swap,
   Transfer,
   Sync,
-} from '../../generated/templates/Pair/Pair';
+} from "../../generated/templates/Pair/Pair";
 import {
   Pair,
   Token,
@@ -16,28 +16,28 @@ import {
   Burn as BurnEvent,
   Swap as SwapEvent,
   Bundle,
-} from '../../generated/schema';
+} from "../../generated/schema";
 
 import {
   updatePairDayData,
   updateTokenDayData,
   updateAthleteXDayData,
   updatePairHourData,
-} from '../utils/updater';
+} from "../utils/updater";
 
 import {
   getMaticPriceInUSD,
   findMaticPerToken,
   getTrackedVolumeUSD,
   getTrackedLiquidityUSD,
-} from '../utils/pricing';
+} from "../utils/pricing";
 
 import {
   convertTokenToDecimal,
   createUser,
   createLiquidityPosition,
   createLiquiditySnapshot,
-} from '../utils/helper';
+} from "../utils/helper";
 
 import {
   ADDRESS_ZERO,
@@ -45,7 +45,7 @@ import {
   ONE_BI,
   ZERO_BD,
   BI_18,
-} from '../utils/constants';
+} from "../utils/constants";
 
 let MINING_POOLS: string[] = [];
 
@@ -108,7 +108,7 @@ export function handleTransfer(event: Transfer): void {
     if (mints.length === 0 || isCompleteMint(mints[mints.length - 1])) {
       let mint = new MintEvent(
         eventHashAsHexString
-          .concat('-')
+          .concat("-")
           .concat(BigInt.fromI32(mints.length).toString())
       );
       mint.transaction = transaction.id;
@@ -143,7 +143,7 @@ export function handleTransfer(event: Transfer): void {
     let burns = transaction.burns;
     let burn = new BurnEvent(
       eventHashAsHexString
-        .concat('-')
+        .concat("-")
         .concat(BigInt.fromI32(burns.length).toString())
     );
     burn.transaction = transaction.id;
@@ -182,7 +182,7 @@ export function handleTransfer(event: Transfer): void {
         burn = new BurnEvent(
           event.transaction.hash
             .toHex()
-            .concat('-')
+            .concat("-")
             .concat(BigInt.fromI32(burns.length).toString())
         );
         burn.transaction = transaction.id;
@@ -196,7 +196,7 @@ export function handleTransfer(event: Transfer): void {
       burn = new BurnEvent(
         event.transaction.hash
           .toHex()
-          .concat('-')
+          .concat("-")
           .concat(BigInt.fromI32(burns.length).toString())
       );
       burn.transaction = transaction.id;
@@ -213,7 +213,7 @@ export function handleTransfer(event: Transfer): void {
       burn.feeTo = mint.to;
       burn.feeLiquidity = mint.liquidity;
       // remove the logical mint
-      store.remove('Mint', mints[mints.length - 1]);
+      store.remove("Mint", mints[mints.length - 1]);
       // update the transaction
 
       // TODO: Consider using .slice().pop() to protect against unintended
@@ -290,7 +290,7 @@ export function handleSync(event: Sync): void {
     pair.token1Price = pair.reserve1.div(pair.reserve0);
   else pair.token1Price = ZERO_BD;
 
-  let bundle = Bundle.load('1');
+  let bundle = Bundle.load("1");
   bundle.maticPrice = getMaticPriceInUSD();
   bundle.save();
 
@@ -370,7 +370,7 @@ export function handleMint(event: Mint): void {
   token1.totalTransactions = token1.totalTransactions.plus(ONE_BI);
 
   // get new amounts of USD and MATIC for tracking
-  let bundle = Bundle.load('1');
+  let bundle = Bundle.load("1");
   let amountTotalUSD = token1.derivedMATIC
     .times(token1Amount)
     .plus(token0.derivedMATIC.times(token0Amount))
@@ -436,7 +436,7 @@ export function handleBurn(event: Burn): void {
   token1.totalTransactions = token1.totalTransactions.plus(ONE_BI);
 
   // get new amounts of USD and MATIC for tracking
-  let bundle = Bundle.load('1');
+  let bundle = Bundle.load("1");
   let amountTotalUSD = token1.derivedMATIC
     .times(token1Amount)
     .plus(token0.derivedMATIC.times(token0Amount))
@@ -501,13 +501,13 @@ export function handleSwap(event: Swap): void {
   let amount1Total = amount1Out.plus(amount1In);
 
   // MATIC/USD prices
-  let bundle = Bundle.load('1');
+  let bundle = Bundle.load("1");
 
   // get total amounts of derived USD and MATIC for tracking
   let derivedAmountMATIC = token1.derivedMATIC
     .times(amount1Total)
     .plus(token0.derivedMATIC.times(amount0Total))
-    .div(BigDecimal.fromString('2'));
+    .div(BigDecimal.fromString("2"));
   let derivedAmountUSD = derivedAmountMATIC.times(bundle.maticPrice);
 
   // only accounts for volume through white listed tokens
@@ -576,7 +576,7 @@ export function handleSwap(event: Swap): void {
   let swap = new SwapEvent(
     event.transaction.hash
       .toHex()
-      .concat('-')
+      .concat("-")
       .concat(BigInt.fromI32(swaps.length).toString())
   );
 

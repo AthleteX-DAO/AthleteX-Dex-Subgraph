@@ -43,6 +43,6 @@
   },
   "lint-staged": {
     "*/**/*.{js,ts}": "eslint --cache --fix",
-    "src/**/*.{js,ts}": "prettier --single-quote --write"
+    "src/**/*.{js,ts}": "prettier --write"
   }
 }
