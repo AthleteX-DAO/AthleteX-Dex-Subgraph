@@ -20,6 +20,9 @@
     "create-local": "graph create --node http://localhost:8020/ SportsToken/AthleteX-Dex-Subgraph",
     "remove-local": "graph remove --node http://localhost:8020/ SportsToken/AthleteX-Dex-Subgraph",
     "deploy-local": "graph deploy --node http://localhost:8020/ --ipfs http://localhost:5001 SportsToken/AthleteX-Dex-Subgraph",
+    "format:check": "prettier --check \"*/**/*.{js,ts}\"",
+    "format:write": "prettier --write \"*/**/*.{js,ts}\"",
+    "lint": "eslint \"*/**/*.{js,ts}\"",
     "prepare": "husky install",
     "precommit": "lint-staged && git add ."
   },
