@@ -1,7 +1,9 @@
 {
-	"network": "toronto",
-	"ax_factory_address": "",
-	"ax_factory_start_block": 0,
-	"ax_token_address": "",
-	"wrapped_gas_token_address": ""
+	"network": "sx",
+	"ax_factory_address": "0x668880Eb73AAd6474b8aE1C08D3310e765803717",
+	"ax_factory_start_block": 4165726,
+	"ax_router_address": "0x4C2295082FC932EDE19EefB1af03c0b6B323610A",
+	"ax_router_start_block": 4165826,
+	"ax_token_address": "0x8977B9bFc7c5609d367854895846586FA392c07D",
+	"wrapped_gas_token_address": "0x2D4e10Ee64CCF407C7F765B363348f7F62D2E06e"
 }

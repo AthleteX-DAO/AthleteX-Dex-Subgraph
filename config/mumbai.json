@@ -1,7 +1,9 @@
 {
 	"network": "mumbai",
-	"ax_factory_address": "0x0000000000000000000000000000000000000000",
-	"ax_factory_start_block": 0,
-	"ax_token_address": "0x0000000000000000000000000000000000000000",
-	"wrapped_gas_token_address": "0x0000000000000000000000000000000000000000"
+	"ax_factory_address": "0x778EF52b9c18dBCbc6B4A8a58B424eA6cEa5a551",
+	"ax_factory_start_block": 20106454,
+	"ax_router_address": "0x7EFc361e568d0038cfB200dF9d9Be27943e19017",
+	"ax_router_start_block": 20106479,
+	"ax_token_address": "0x76D9a6e4CdEFc840A47069B71824AD8ff4819e85",
+	"wrapped_gas_token_address": "0x9c3C9283D3e44854697Cd22D3Faa240Cfb032889"
 }
